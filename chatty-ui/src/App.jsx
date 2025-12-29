@@ -637,7 +637,11 @@ function App() {
       const existingSession = sessions.find(s => s.name === 'default')
 
       if (existingSession) {
-        if (existingSession.status === 'STOPPED') {
+        if (existingSession.status === 'STOPPED' || existingSession.status === 'FAILED') {
+          // Stop first if failed, then start
+          if (existingSession.status === 'FAILED') {
+            await wahaApi('/api/sessions/default/stop', 'POST')
+          }
           // Start the stopped session
           await wahaApi('/api/sessions/default/start', 'POST')
         } else if (existingSession.status === 'WORKING') {
