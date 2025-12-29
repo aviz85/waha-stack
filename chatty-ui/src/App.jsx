@@ -632,28 +632,36 @@ function App() {
     openQrModal()
 
     try {
-      // First check if session exists
-      const sessions = await wahaApi('/api/sessions')
-      const exists = sessions.some(s => s.name === 'default')
+      // First check if session exists (include stopped sessions)
+      const sessions = await wahaApi('/api/sessions?all=true')
+      const existingSession = sessions.find(s => s.name === 'default')
 
-      if (exists) {
-        // Use PUT to restart existing session (stops and starts fresh)
-        await wahaApi('/api/sessions', 'PUT', {
-          name: 'default',
-          config: {
-            noweb: { store: { enabled: false } }
-          }
-        })
+      if (existingSession) {
+        if (existingSession.status === 'STOPPED') {
+          // Start the stopped session
+          await wahaApi('/api/sessions/default/start', 'POST')
+        } else if (existingSession.status === 'WORKING') {
+          // Already connected, just close modal
+          closeQrModal()
+          showToast('Already connected!', 'success')
+          setReconnecting(false)
+          return
+        } else {
+          // Session exists but in another state (STARTING, SCAN_QR_CODE, etc.)
+          // Just wait for QR to be ready
+        }
       } else {
-        // Create new session with POST
+        // Create new session with POST, then start it
         await wahaApi('/api/sessions', 'POST', {
           name: 'default',
+          start: true,
           config: {
             noweb: { store: { enabled: false } }
           }
         })
       }
     } catch (e) {
+      console.error('Reconnect error:', e)
       closeQrModal()
       showToast('Failed to reconnect. Check WAHA server.', 'error')
     }
