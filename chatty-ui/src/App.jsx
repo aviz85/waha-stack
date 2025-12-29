@@ -676,8 +676,6 @@ function App() {
   // Reconnect Session
   const reconnectSession = async () => {
     setReconnecting(true)
-    // Immediately show QR modal with loading
-    openQrModal()
 
     try {
       // First check if session exists (include stopped sessions)
@@ -687,25 +685,27 @@ function App() {
       if (existingSession) {
         switch (existingSession.status) {
           case 'WORKING':
-            // Already connected, just close modal
-            closeQrModal()
             showToast('Already connected!', 'success')
             setReconnecting(false)
             return
           case 'SCAN_QR_CODE':
-            // Ready for QR scan, just fetch QR code
+            // Need QR scan, open modal
+            openQrModal()
             break
           case 'STARTING':
             // Wait for it to be ready
+            showToast('Session starting...', 'success')
             break
           case 'STOPPED':
             // Start the stopped session
             await wahaApi('/api/sessions/default/start', 'POST')
+            showToast('Reconnecting...', 'success')
             break
           case 'FAILED':
             // Stop and restart failed session
             await wahaApi('/api/sessions/default/stop', 'POST')
             await wahaApi('/api/sessions/default/start', 'POST')
+            showToast('Restarting session...', 'success')
             break
           default:
             // Unknown state, try to restart with PUT
@@ -713,6 +713,7 @@ function App() {
               name: 'default',
               start: true
             })
+            showToast('Reconnecting...', 'success')
         }
       } else {
         // Create new session with POST, then start it
@@ -723,14 +724,21 @@ function App() {
             noweb: { store: { enabled: false } }
           }
         })
+        showToast('Creating session...', 'success')
       }
     } catch (e) {
       console.error('Reconnect error:', e)
-      closeQrModal()
       showToast('Failed to reconnect. Check WAHA server.', 'error')
     }
     setReconnecting(false)
   }
+
+  // Watch for session status change to SCAN_QR_CODE and open modal
+  useEffect(() => {
+    if (session?.status === 'SCAN_QR_CODE' && !showQr) {
+      openQrModal()
+    }
+  }, [session?.status])
 
   // Load Chats from our backend (incoming messages via webhook)
   const loadChats = async () => {
@@ -1047,27 +1055,35 @@ function App() {
           </motion.div>
           {session?.status !== 'WORKING' && (
             <motion.button
-              className="btn btn-reconnect"
+              className={`btn btn-reconnect ${reconnecting ? 'reconnecting' : ''}`}
               onClick={reconnectSession}
               disabled={reconnecting}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: reconnecting ? 1 : 1.05 }}
+              whileTap={{ scale: reconnecting ? 1 : 0.95 }}
               initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={reconnecting ? {
+                opacity: 1,
+                x: 0,
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  '0 4px 16px rgba(255, 165, 0, 0.3)',
+                  '0 4px 24px rgba(255, 165, 0, 0.6)',
+                  '0 4px 16px rgba(255, 165, 0, 0.3)'
+                ]
+              } : { opacity: 1, x: 0 }}
+              transition={reconnecting ? {
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut"
+              } : {}}
             >
-              {reconnecting ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  <RefreshCw size={18} />
-                </motion.div>
-              ) : (
-                <>
-                  <RefreshCw size={18} />
-                  Reconnect
-                </>
-              )}
+              <motion.div
+                animate={reconnecting ? { rotate: 360 } : {}}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <RefreshCw size={18} />
+              </motion.div>
+              {reconnecting ? 'Connecting...' : 'Reconnect'}
             </motion.button>
           )}
           {session?.me && (
