@@ -1783,6 +1783,13 @@
   transition: all 0.2s ease;
 }
 
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
 .btn-icon:hover {
   background: white;
   border-color: var(--teal);
