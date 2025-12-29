@@ -614,6 +614,9 @@
   gap: 12px;
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+  margin: -4px;
 }
 
 .favorite-card {
@@ -624,7 +627,8 @@
   background: white;
   border-radius: 16px;
   border: 2px solid #E8E8E8;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
 }
 
 .favorite-card:hover {
@@ -672,6 +676,16 @@
 
 .icon-btn.use:hover {
   background: var(--teal);
+  color: white;
+}
+
+.icon-btn.edit {
+  background: rgba(255, 217, 61, 0.1);
+  color: #B8860B;
+}
+
+.icon-btn.edit:hover {
+  background: var(--yellow);
   color: white;
 }
 
@@ -1425,16 +1439,17 @@
   background: white;
   padding: 16px;
   border-radius: 16px;
-  margin-bottom: 24px;
-  display: inline-block;
+  margin: 0 auto 24px auto;
+  display: block;
+  width: fit-content;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   position: relative;
   cursor: pointer;
 }
 
 .qr-image-container img {
-  width: 256px;
-  height: 256px;
+  width: 280px;
+  height: 280px;
   display: block;
 }
 
@@ -1467,8 +1482,8 @@
 }
 
 .qr-loading {
-  width: 256px;
-  height: 256px;
+  width: 280px;
+  height: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1476,7 +1491,7 @@
   gap: 16px;
   background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
   border-radius: 16px;
-  margin-bottom: 24px;
+  margin: 0 auto 24px auto;
   color: var(--teal);
 }
 
@@ -1639,4 +1654,55 @@
 .btn-icon:hover {
   background: white;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Edit Favorite Modal */
+.edit-modal {
+  max-width: 360px;
+}
+
+.edit-modal h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.edit-form label span {
+  font-weight: 600;
+  color: #2D3436;
+  font-size: 14px;
+}
+
+.edit-form input {
+  padding: 12px 16px;
+  border: 2px solid #E9ECEF;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(255, 217, 61, 0.15);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }

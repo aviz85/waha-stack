@@ -6,7 +6,7 @@ import {
   Phone, Image, FileText, Smile, RefreshCw,
   Volume2, Trash2, Copy, Plus, Settings,
   StarOff, Play, Pause, Timer, List,
-  MessagesSquare, Search, ChevronRight, User
+  MessagesSquare, Search, ChevronRight, User, Pencil
 } from 'lucide-react'
 import './App.css'
 import { config, setApiKey, getStoredApiKey } from './config'
@@ -169,14 +169,13 @@ function FeatureCard({ icon: Icon, title, color, children, delay = 0 }) {
 }
 
 // Favorite Card
-function FavoriteCard({ favorite, onUse, onRemove }) {
+function FavoriteCard({ favorite, onUse, onEdit, onRemove }) {
   return (
     <motion.div
       className="favorite-card"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ scale: 1.02 }}
     >
       <div className="favorite-info">
         <span className="favorite-name">{favorite.name || 'Unknown'}</span>
@@ -191,6 +190,15 @@ function FavoriteCard({ favorite, onUse, onRemove }) {
           title="Send message"
         >
           <Send size={16} />
+        </motion.button>
+        <motion.button
+          className="icon-btn edit"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => onEdit(favorite)}
+          title="Edit"
+        >
+          <Pencil size={16} />
         </motion.button>
         <motion.button
           className="icon-btn remove"
@@ -277,6 +285,9 @@ function App() {
   const [favorites, setFavorites] = useState([])
   const [newFavName, setNewFavName] = useState('')
   const [newFavPhone, setNewFavPhone] = useState('')
+  const [editingFavorite, setEditingFavorite] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
 
   // Bulk Send
   const [bulkPhones, setBulkPhones] = useState('')
@@ -394,6 +405,34 @@ function App() {
       showToast('Removed from favorites')
     } catch (e) {
       showToast('Failed to remove favorite', 'error')
+    }
+  }
+
+  const openEditFavorite = (fav) => {
+    setEditingFavorite(fav)
+    setEditName(fav.name)
+    setEditPhone(fav.phone)
+  }
+
+  const saveEditFavorite = async () => {
+    if (!editName.trim() || !editPhone.trim()) {
+      showToast('Name and phone are required', 'error')
+      return
+    }
+    try {
+      // Delete old and create new (simple approach)
+      await api(`/api/favorites/${editingFavorite.phone}`, 'DELETE')
+      const result = await api('/api/favorites', 'POST', {
+        phone: editPhone.trim(),
+        name: editName.trim()
+      })
+      setFavorites(prev => prev.map(f =>
+        f.phone === editingFavorite.phone ? result : f
+      ))
+      setEditingFavorite(null)
+      showToast('Favorite updated!')
+    } catch (e) {
+      showToast('Failed to update favorite', 'error')
     }
   }
 
@@ -884,6 +923,60 @@ function App() {
                   Save & Connect
                 </button>
                 <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Favorite Modal */}
+      <AnimatePresence>
+        {editingFavorite && (
+          <motion.div
+            className="qr-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setEditingFavorite(null)}
+          >
+            <motion.div
+              className="qr-modal edit-modal"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3><Pencil size={20} /> Edit Favorite</h3>
+              <p>Update contact details</p>
+
+              <div className="edit-form">
+                <label>
+                  <span>Name</span>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Contact name"
+                  />
+                </label>
+                <label>
+                  <span>Phone Number</span>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="972501234567"
+                  />
+                </label>
+              </div>
+
+              <div className="edit-actions">
+                <button className="btn btn-primary" onClick={saveEditFavorite}>
+                  Save Changes
+                </button>
+                <button className="btn btn-secondary" onClick={() => setEditingFavorite(null)}>
                   Cancel
                 </button>
               </div>
@@ -1430,6 +1523,7 @@ function App() {
                             key={fav.phone}
                             favorite={fav}
                             onUse={useFavorite}
+                            onEdit={openEditFavorite}
                             onRemove={removeFavorite}
                           />
                         ))
