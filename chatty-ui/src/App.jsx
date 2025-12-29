@@ -9,15 +9,17 @@ import {
   MessagesSquare, Search, ChevronRight, User
 } from 'lucide-react'
 import './App.css'
-import { config } from './config'
+import { config, setApiKey, getStoredApiKey } from './config'
 
 const WAHA_URL = config.WAHA_URL
 const API_URL = config.API_URL
-const API_KEY = config.API_KEY
+
+// Get API key dynamically (from localStorage)
+const getApiKey = () => config.API_KEY
 
 // WAHA API Helper (WhatsApp)
 async function wahaApi(endpoint, method = 'GET', body = null) {
-  const headers = { 'Content-Type': 'application/json', 'X-Api-Key': API_KEY }
+  const headers = { 'Content-Type': 'application/json', 'X-Api-Key': getApiKey() }
   const options = { method, headers, mode: 'cors' }
   if (body) options.body = JSON.stringify(body)
   const res = await fetch(`${WAHA_URL}${endpoint}`, options)
@@ -297,6 +299,10 @@ function App() {
   const [qrLoading, setQrLoading] = useState(false)
   const qrTimeoutRef = useRef(null)
 
+  // Settings
+  const [showSettings, setShowSettings] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState(getStoredApiKey() || '')
+
   // Conversations
   const [chats, setChats] = useState([])
   const [chatsLoading, setChatsLoading] = useState(false)
@@ -320,6 +326,14 @@ function App() {
   const removeToast = (id) => {
     setToasts(prev => prev.filter(t => t.id !== id))
   }
+
+  // Check if API key is set, show settings if not
+  useEffect(() => {
+    const apiKey = getStoredApiKey()
+    if (!apiKey) {
+      setShowSettings(true)
+    }
+  }, [])
 
   // Load favorites from SQLite
   useEffect(() => {
@@ -800,6 +814,60 @@ function App() {
         )}
       </AnimatePresence>
 
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            className="qr-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSettings(false)}
+          >
+            <motion.div
+              className="qr-modal settings-modal"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3>⚙️ Settings</h3>
+              <p>Configure your WAHA API connection</p>
+
+              <div className="settings-form">
+                <label>
+                  <span>API Key</span>
+                  <input
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    placeholder="Enter your WAHA API key"
+                  />
+                </label>
+              </div>
+
+              <div className="settings-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setApiKey(apiKeyInput)
+                    setShowSettings(false)
+                    toast('API key saved! Refreshing...', 'success')
+                    // Force page reload to apply new API key
+                    setTimeout(() => window.location.reload(), 500)
+                  }}
+                >
+                  Save & Connect
+                </button>
+                <button className="btn btn-secondary" onClick={() => setShowSettings(false)}>
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.header
         className="header"
@@ -815,6 +883,15 @@ function App() {
           </div>
         </div>
         <div className="header-right">
+          <motion.button
+            className="btn btn-icon"
+            onClick={() => setShowSettings(true)}
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            title="Settings"
+          >
+            <Settings size={20} />
+          </motion.button>
           <motion.div
             className={`status-badge ${session?.status === 'WORKING' ? 'connected' : 'disconnected'}`}
             animate={session?.status === 'WORKING' ? { scale: [1, 1.05, 1] } : {}}
