@@ -259,6 +259,13 @@ app.post('/api/webhook', (req, res) => {
     if (payload.event === 'message' || payload.event === 'message.any') {
       const msg = payload.payload
 
+      // Skip broadcast messages (status updates, broadcast lists)
+      const chatId = msg.chatId || msg.from || ''
+      if (chatId.includes('@broadcast') || chatId.includes('status@')) {
+        console.log('⏭️ Skipping broadcast message')
+        return res.json({ success: true, skipped: 'broadcast' })
+      }
+
       // Extract phone from chat ID (e.g., "972501234567@c.us" -> "972501234567")
       const phone = msg.from?.replace('@c.us', '').replace('@s.whatsapp.net', '') || ''
 
@@ -288,17 +295,17 @@ app.post('/api/webhook', (req, res) => {
   }
 })
 
-// Get incoming messages
+// Get incoming messages (excludes broadcasts)
 app.get('/api/incoming', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50
     const since = req.query.since // Optional: get messages after this ID
 
-    let query = 'SELECT * FROM incoming_messages'
-    const params = []
+    let query = 'SELECT * FROM incoming_messages WHERE chat_id NOT LIKE ? AND chat_id NOT LIKE ?'
+    const params = ['%@broadcast%', '%status@%']
 
     if (since) {
-      query += ' WHERE id > ?'
+      query += ' AND id > ?'
       params.push(since)
     }
 

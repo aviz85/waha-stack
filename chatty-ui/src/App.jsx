@@ -1769,13 +1769,13 @@ function App() {
                               {chatMessages.slice(0, 10).map((msg, i) => (
                                 <motion.div
                                   key={msg.id || i}
-                                  className={`message-bubble ${msg.fromMe ? 'from-me' : 'from-them'}`}
+                                  className={`message-bubble ${msg.is_from_me ? 'from-me' : 'from-them'}`}
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: i * 0.05 }}
                                 >
                                   <div className="message-content">
-                                    {msg.body || (msg.hasMedia ? '📎 Media' : '...')}
+                                    {msg.message || '[media]'}
                                   </div>
                                   <div className="message-time">
                                     {new Date(msg.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
