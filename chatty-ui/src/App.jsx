@@ -568,7 +568,7 @@ function App() {
   const fetchQrCode = async () => {
     try {
       const response = await fetch(`${WAHA_URL}/api/default/auth/qr`, {
-        headers: { 'X-Api-Key': API_KEY }
+        headers: { 'X-Api-Key': getApiKey() }
       })
       if (response.ok) {
         const blob = await response.blob()
