@@ -17,8 +17,13 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
+          script_stop: true
           script: |
-            cd $HOME/waha-test
+            echo "Home: $HOME"
+            echo "Finding waha-test..."
+            find /root -maxdepth 2 -name "waha-test" -type d 2>/dev/null || find /home -maxdepth 3 -name "waha-test" -type d 2>/dev/null || echo "Not found"
+            cd /root/waha-test || cd ~/waha-test
+            pwd
             git pull origin main
             docker compose build chatty-frontend --no-cache
             docker compose up -d chatty-frontend
