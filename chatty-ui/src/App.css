@@ -1770,22 +1770,24 @@
 }
 
 .btn-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  border: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: #2D3436;
+  border: 2px solid #E8E8E8;
+  background: rgba(255, 255, 255, 0.95);
+  color: #636E72;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-icon:hover {
   background: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-color: var(--teal);
+  color: var(--teal);
+  box-shadow: 0 4px 15px rgba(0, 212, 170, 0.2);
 }
 
 /* Edit Favorite Modal */
