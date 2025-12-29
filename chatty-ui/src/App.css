@@ -1773,8 +1773,8 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 2px solid #E8E8E8;
-  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  background: transparent;
   color: #636E72;
   cursor: pointer;
   display: flex;
@@ -1791,10 +1791,7 @@
 }
 
 .btn-icon:hover {
-  background: white;
-  border-color: var(--teal);
   color: var(--teal);
-  box-shadow: 0 4px 15px rgba(0, 212, 170, 0.2);
 }
 
 /* Edit Favorite Modal */
