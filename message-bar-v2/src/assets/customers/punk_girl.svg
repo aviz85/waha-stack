@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 120">
+  <defs>
+    <linearGradient id="punkPink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF69B4"/>
+      <stop offset="100%" style="stop-color:#FF2D95"/>
+    </linearGradient>
+    <filter id="glowPink2" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Jacket -->
+  <path d="M22 45 L28 38 L52 38 L58 45 L58 80 L22 80 Z" fill="#1A1A2A"/>
+
+  <!-- Inner shirt -->
+  <rect x="30" y="42" width="20" height="15" fill="url(#punkPink)"/>
+
+  <!-- Jacket details -->
+  <line x1="22" y1="45" x2="22" y2="80" stroke="#FF2D95" stroke-width="2"/>
+  <line x1="58" y1="45" x2="58" y2="80" stroke="#FF2D95" stroke-width="2"/>
+  <circle cx="26" cy="55" r="3" fill="#FFD700"/>
+  <circle cx="26" cy="65" r="3" fill="#FFD700"/>
+
+  <!-- Head -->
+  <ellipse cx="40" cy="28" rx="14" ry="16" fill="#FFE0BD"/>
+
+  <!-- Punk hair (mohawk style) -->
+  <path d="M30 20 Q32 5 40 3 Q48 5 50 20" fill="url(#punkPink)" filter="url(#glowPink2)"/>
+  <path d="M25 25 L28 18 L32 22 L36 15 L40 20 L44 15 L48 22 L52 18 L55 25" fill="url(#punkPink)"/>
+
+  <!-- Side hair -->
+  <path d="M25 28 L22 35 L26 30" fill="#1A1A2A"/>
+  <path d="M55 28 L58 35 L54 30" fill="#1A1A2A"/>
+
+  <!-- Eyes with eyeliner -->
+  <ellipse cx="34" cy="26" rx="4" ry="3" fill="white"/>
+  <ellipse cx="46" cy="26" rx="4" ry="3" fill="white"/>
+  <circle cx="34" cy="26" r="2" fill="#333"/>
+  <circle cx="46" cy="26" r="2" fill="#333"/>
+  <path d="M29 24 L32 25" stroke="#1A1A2A" stroke-width="1.5"/>
+  <path d="M48 25 L51 24" stroke="#1A1A2A" stroke-width="1.5"/>
+
+  <!-- Eyebrow piercing -->
+  <circle cx="31" cy="22" r="1.5" fill="#C0C0C0"/>
+
+  <!-- Mouth with lipstick -->
+  <path d="M36 36 Q40 39 44 36" fill="none" stroke="#FF2D95" stroke-width="2"/>
+
+  <!-- Nose ring -->
+  <circle cx="40" cy="32" r="2" fill="none" stroke="#C0C0C0" stroke-width="1"/>
+
+  <!-- Legs in ripped jeans -->
+  <rect x="26" y="80" width="12" height="28" fill="#2A2A4A"/>
+  <rect x="42" y="80" width="12" height="28" fill="#2A2A4A"/>
+  <line x1="28" y1="90" x2="36" y2="92" stroke="#1A1A2A" stroke-width="2"/>
+  <line x1="44" y1="95" x2="52" y2="93" stroke="#1A1A2A" stroke-width="2"/>
+
+  <!-- Boots -->
+  <path d="M24 108 L24 115 L40 115 L40 108 Z" fill="#1A1A1A"/>
+  <path d="M40 108 L40 115 L56 115 L56 108 Z" fill="#1A1A1A"/>
+</svg>

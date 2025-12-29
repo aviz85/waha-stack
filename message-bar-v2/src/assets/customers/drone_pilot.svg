@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 120">
+  <defs>
+    <linearGradient id="pilotOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFA500"/>
+      <stop offset="100%" style="stop-color:#FF6B35"/>
+    </linearGradient>
+    <filter id="glowOrange2" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Flight jacket -->
+  <path d="M18 45 L28 38 L52 38 L62 45 L62 88 L18 88 Z" fill="#4A3020"/>
+
+  <!-- Jacket zipper -->
+  <line x1="40" y1="42" x2="40" y2="88" stroke="#808080" stroke-width="2"/>
+  <circle cx="40" cy="50" r="2" fill="#C0C0C0"/>
+
+  <!-- Orange accents -->
+  <rect x="18" y="60" width="6" height="20" fill="url(#pilotOrange)"/>
+  <rect x="56" y="60" width="6" height="20" fill="url(#pilotOrange)"/>
+
+  <!-- Head -->
+  <ellipse cx="40" cy="28" rx="14" ry="16" fill="#8B6B4A"/>
+
+  <!-- Flight helmet/cap -->
+  <path d="M24 22 Q26 10 40 8 Q54 10 56 22 L56 28 L52 30 L52 22 Q48 15 40 15 Q32 15 28 22 L28 30 L24 28 Z" fill="#2A2A3A"/>
+
+  <!-- Goggles -->
+  <ellipse cx="32" cy="26" rx="8" ry="6" fill="#1A1A2A" stroke="url(#pilotOrange)" stroke-width="2"/>
+  <ellipse cx="48" cy="26" rx="8" ry="6" fill="#1A1A2A" stroke="url(#pilotOrange)" stroke-width="2"/>
+  <line x1="40" y1="26" x2="40" y2="26" stroke="url(#pilotOrange)" stroke-width="3"/>
+
+  <!-- Goggle reflection -->
+  <ellipse cx="30" cy="24" rx="3" ry="2" fill="rgba(255,255,255,0.3)"/>
+  <ellipse cx="46" cy="24" rx="3" ry="2" fill="rgba(255,255,255,0.3)"/>
+
+  <!-- Goggle orange glow -->
+  <ellipse cx="32" cy="26" rx="5" ry="4" fill="url(#pilotOrange)" opacity="0.3" filter="url(#glowOrange2)"/>
+  <ellipse cx="48" cy="26" rx="5" ry="4" fill="url(#pilotOrange)" opacity="0.3" filter="url(#glowOrange2)"/>
+
+  <!-- Mouth/chin -->
+  <path d="M35 38 Q40 40 45 38" fill="none" stroke="#6A4A3A" stroke-width="1.5"/>
+
+  <!-- Headset mic -->
+  <path d="M24 30 L20 35 L20 40" fill="none" stroke="#2A2A3A" stroke-width="2"/>
+  <circle cx="20" cy="42" r="3" fill="#1A1A2A"/>
+
+  <!-- Controller in hands -->
+  <rect x="25" y="75" width="30" height="15" rx="3" fill="#2A2A3A"/>
+  <circle cx="33" cy="80" r="3" fill="#1A1A2A"/>
+  <circle cx="47" cy="80" r="3" fill="#1A1A2A"/>
+  <rect x="38" y="77" width="4" height="8" rx="1" fill="url(#pilotOrange)" filter="url(#glowOrange2)"/>
+
+  <!-- Joysticks -->
+  <circle cx="33" cy="80" r="1.5" fill="url(#pilotOrange)"/>
+  <circle cx="47" cy="80" r="1.5" fill="url(#pilotOrange)"/>
+
+  <!-- Cargo pants -->
+  <rect x="24" y="88" width="14" height="22" fill="#5A5040"/>
+  <rect x="42" y="88" width="14" height="22" fill="#5A5040"/>
+
+  <!-- Cargo pockets -->
+  <rect x="26" y="95" width="8" height="6" fill="none" stroke="#4A4030" stroke-width="1"/>
+  <rect x="46" y="95" width="8" height="6" fill="none" stroke="#4A4030" stroke-width="1"/>
+
+  <!-- Boots -->
+  <path d="M22 110 L22 118 L40 118 L40 110 Z" fill="#2A1A0A"/>
+  <path d="M40 110 L40 118 L58 118 L58 110 Z" fill="#2A1A0A"/>
+
+  <!-- Small drone hovering -->
+  <g transform="translate(58, 20)">
+    <rect x="-6" y="0" width="12" height="6" rx="1" fill="#3A3A4A"/>
+    <line x1="-10" y1="2" x2="-6" y2="2" stroke="#3A3A4A" stroke-width="1"/>
+    <line x1="6" y1="2" x2="10" y2="2" stroke="#3A3A4A" stroke-width="1"/>
+    <circle cx="-10" cy="2" r="3" fill="url(#pilotOrange)" opacity="0.5"/>
+    <circle cx="10" cy="2" r="3" fill="url(#pilotOrange)" opacity="0.5"/>
+    <circle cx="0" cy="3" r="1.5" fill="#FF0000"/>
+  </g>
+</svg>

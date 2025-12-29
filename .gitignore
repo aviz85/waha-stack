@@ -1,0 +1,33 @@
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (handled by subprojects)
+node_modules/
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker volumes (if stored locally)
+volumes/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/

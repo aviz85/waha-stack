@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a0a2e"/>
+      <stop offset="40%" style="stop-color:#0a0a15"/>
+      <stop offset="100%" style="stop-color:#2D1810"/>
+    </linearGradient>
+
+    <linearGradient id="shelfGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF2D95;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#FF2D95;stop-opacity:0"/>
+    </linearGradient>
+
+    <linearGradient id="barTop" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5A3828"/>
+      <stop offset="100%" style="stop-color:#4A2C1C"/>
+    </linearGradient>
+
+    <linearGradient id="barFront" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3D2015"/>
+      <stop offset="100%" style="stop-color:#2D1810"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Brick pattern -->
+    <pattern id="bricks" x="0" y="0" width="70" height="40" patternUnits="userSpaceOnUse">
+      <rect width="70" height="40" fill="#1a0a1e"/>
+      <rect x="2" y="2" width="30" height="17" rx="1" fill="#2a1a2e"/>
+      <rect x="36" y="2" width="32" height="17" rx="1" fill="#2a1a2e"/>
+      <rect x="18" y="21" width="32" height="17" rx="1" fill="#2a1a2e"/>
+      <rect x="-14" y="21" width="30" height="17" rx="1" fill="#2a1a2e"/>
+      <rect x="54" y="21" width="30" height="17" rx="1" fill="#2a1a2e"/>
+    </pattern>
+  </defs>
+
+  <!-- Main background -->
+  <rect width="1280" height="720" fill="url(#bgGradient)"/>
+
+  <!-- Brick wall -->
+  <rect x="0" y="0" width="1280" height="350" fill="url(#bricks)" opacity="0.6"/>
+
+  <!-- Shelf area background -->
+  <rect x="0" y="70" width="1280" height="200" fill="rgba(20,10,30,0.9)"/>
+
+  <!-- Shelf 1 -->
+  <rect x="0" y="200" width="1280" height="12" fill="#4A2C1C"/>
+  <rect x="0" y="210" width="1280" height="3" fill="#FF2D95" filter="url(#neonGlow)" opacity="0.8"/>
+
+  <!-- Shelf glow -->
+  <rect x="0" y="130" width="1280" height="70" fill="url(#shelfGlow)"/>
+
+  <!-- Neon sign - OPEN -->
+  <g transform="translate(1050, 30)">
+    <rect x="0" y="0" width="180" height="50" rx="5" fill="rgba(20,10,30,0.9)" stroke="#FF2D95" stroke-width="2"/>
+    <text x="90" y="35" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="24" fill="#FF2D95" filter="url(#neonGlow)">OPEN 24/7</text>
+  </g>
+
+  <!-- Decorative neon lines on wall -->
+  <line x1="50" y1="100" x2="50" y2="200" stroke="#00FFFF" stroke-width="2" filter="url(#neonGlow)" opacity="0.5"/>
+  <line x1="150" y1="80" x2="150" y2="200" stroke="#BF40FF" stroke-width="2" filter="url(#neonGlow)" opacity="0.4"/>
+  <line x1="1130" y1="100" x2="1130" y2="200" stroke="#00FFFF" stroke-width="2" filter="url(#neonGlow)" opacity="0.5"/>
+  <line x1="1230" y1="80" x2="1230" y2="200" stroke="#39FF14" stroke-width="2" filter="url(#neonGlow)" opacity="0.4"/>
+
+  <!-- Bar counter top -->
+  <rect x="0" y="470" width="1280" height="20" fill="url(#barTop)"/>
+  <rect x="0" y="468" width="1280" height="4" fill="#6A4838"/>
+
+  <!-- Bar counter front -->
+  <rect x="0" y="490" width="1280" height="230" fill="url(#barFront)"/>
+
+  <!-- Bar counter panels -->
+  <g fill="none" stroke="#4A2C1C" stroke-width="2">
+    <rect x="30" y="510" width="150" height="180" rx="3"/>
+    <rect x="200" y="510" width="150" height="180" rx="3"/>
+    <rect x="370" y="510" width="150" height="180" rx="3"/>
+    <rect x="540" y="510" width="150" height="180" rx="3"/>
+    <rect x="710" y="510" width="150" height="180" rx="3"/>
+    <rect x="880" y="510" width="150" height="180" rx="3"/>
+    <rect x="1050" y="510" width="150" height="180" rx="3"/>
+  </g>
+
+  <!-- Metal foot rail -->
+  <rect x="30" y="660" width="1220" height="12" rx="6" fill="#4A4A5A"/>
+  <rect x="30" y="660" width="1220" height="4" fill="#6A6A7A"/>
+
+  <!-- Rail supports -->
+  <rect x="100" y="650" width="8" height="30" fill="#3A3A4A"/>
+  <rect x="400" y="650" width="8" height="30" fill="#3A3A4A"/>
+  <rect x="700" y="650" width="8" height="30" fill="#3A3A4A"/>
+  <rect x="1000" y="650" width="8" height="30" fill="#3A3A4A"/>
+
+  <!-- Ambient neon underglow on bar -->
+  <rect x="0" y="488" width="1280" height="4" fill="#FF2D95" filter="url(#neonGlow)" opacity="0.4"/>
+
+  <!-- Floor reflection hint -->
+  <rect x="0" y="700" width="1280" height="20" fill="rgba(0,0,0,0.5)"/>
+</svg>

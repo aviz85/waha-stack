@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96">
+  <defs>
+    <linearGradient id="liquidPink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF69B4"/>
+      <stop offset="100%" style="stop-color:#FF2D95"/>
+    </linearGradient>
+    <filter id="glowPink" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="glass2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:rgba(255,255,255,0.3)"/>
+      <stop offset="50%" style="stop-color:rgba(255,255,255,0.1)"/>
+      <stop offset="100%" style="stop-color:rgba(255,255,255,0.2)"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Cork -->
+  <rect x="22" y="4" width="20" height="12" rx="2" fill="#8B4513"/>
+  <rect x="24" y="6" width="16" height="3" fill="#A0522D"/>
+
+  <!-- Bottle body -->
+  <path d="M20 16 L24 16 L26 24 L26 82 Q26 86 30 86 L34 86 Q38 86 38 82 L38 24 L40 16 L44 16 L44 20 L42 28 L42 82 Q42 90 34 90 L30 90 Q22 90 22 82 L22 28 L20 20 Z"
+        fill="url(#glass2)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+
+  <!-- Liquid -->
+  <path d="M26 35 L26 82 Q26 86 30 86 L34 86 Q38 86 38 82 L38 35 Z"
+        fill="url(#liquidPink)" filter="url(#glowPink)" opacity="0.9"/>
+
+  <!-- Highlight -->
+  <path d="M28 40 L28 75 Q28 78 30 78" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
+
+  <!-- Label emoji -->
+  <text x="32" y="58" text-anchor="middle" font-size="18">🙏</text>
+
+  <!-- Bubbles -->
+  <circle cx="30" cy="70" r="2" fill="rgba(255,255,255,0.5)"/>
+  <circle cx="35" cy="65" r="1.5" fill="rgba(255,255,255,0.4)"/>
+</svg>
