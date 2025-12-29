@@ -38,6 +38,10 @@ jobs:
               echo "WAHA_API_KEY=${{ secrets.WAHA_API_KEY }}" > .env
             fi
 
+            # Stop old containers if they exist (from previous setup location)
+            docker stop waha chatty-backend chatty-frontend waha-panel 2>/dev/null || true
+            docker rm waha chatty-backend chatty-frontend waha-panel 2>/dev/null || true
+
             docker compose build chatty-frontend --no-cache
             docker compose up -d
 
