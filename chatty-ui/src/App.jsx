@@ -637,22 +637,34 @@ function App() {
       const existingSession = sessions.find(s => s.name === 'default')
 
       if (existingSession) {
-        if (existingSession.status === 'STOPPED' || existingSession.status === 'FAILED') {
-          // Stop first if failed, then start
-          if (existingSession.status === 'FAILED') {
+        switch (existingSession.status) {
+          case 'WORKING':
+            // Already connected, just close modal
+            closeQrModal()
+            showToast('Already connected!', 'success')
+            setReconnecting(false)
+            return
+          case 'SCAN_QR_CODE':
+            // Ready for QR scan, just fetch QR code
+            break
+          case 'STARTING':
+            // Wait for it to be ready
+            break
+          case 'STOPPED':
+            // Start the stopped session
+            await wahaApi('/api/sessions/default/start', 'POST')
+            break
+          case 'FAILED':
+            // Stop and restart failed session
             await wahaApi('/api/sessions/default/stop', 'POST')
-          }
-          // Start the stopped session
-          await wahaApi('/api/sessions/default/start', 'POST')
-        } else if (existingSession.status === 'WORKING') {
-          // Already connected, just close modal
-          closeQrModal()
-          showToast('Already connected!', 'success')
-          setReconnecting(false)
-          return
-        } else {
-          // Session exists but in another state (STARTING, SCAN_QR_CODE, etc.)
-          // Just wait for QR to be ready
+            await wahaApi('/api/sessions/default/start', 'POST')
+            break
+          default:
+            // Unknown state, try to restart with PUT
+            await wahaApi('/api/sessions', 'PUT', {
+              name: 'default',
+              start: true
+            })
         }
       } else {
         // Create new session with POST, then start it
