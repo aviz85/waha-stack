@@ -1235,6 +1235,29 @@
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn.clear {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--coral);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-btn.clear:hover {
+  background: rgba(255, 107, 107, 0.2);
+}
+
 .icon-btn.refresh {
   width: 36px;
   height: 36px;

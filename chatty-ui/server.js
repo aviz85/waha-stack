@@ -330,6 +330,16 @@ app.get('/api/incoming/count', (req, res) => {
   }
 })
 
+// Clear all incoming messages
+app.delete('/api/incoming', (req, res) => {
+  try {
+    db.prepare('DELETE FROM incoming_messages').run()
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ============ STATS ============
 
 app.get('/api/stats', (req, res) => {

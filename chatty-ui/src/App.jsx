@@ -310,6 +310,7 @@ function App() {
   const [showQr, setShowQr] = useState(false)
   const [qrLoading, setQrLoading] = useState(false)
   const qrTimeoutRef = useRef(null)
+  const autoConnectAttemptedRef = useRef(false)
 
   // Settings
   const [showSettings, setShowSettings] = useState(false)
@@ -740,6 +741,17 @@ function App() {
     }
   }, [session?.status])
 
+  // Auto-connect at startup if not connected
+  useEffect(() => {
+    if (session && !autoConnectAttemptedRef.current) {
+      autoConnectAttemptedRef.current = true
+      if (session.status !== 'WORKING' && session.status !== 'STARTING') {
+        console.log('Auto-connecting on startup...')
+        reconnectSession()
+      }
+    }
+  }, [session])
+
   // Load Chats from our backend (incoming messages via webhook)
   const loadChats = async () => {
     setChatsLoading(true)
@@ -765,6 +777,20 @@ function App() {
       // Silently fail - webhook will populate messages as they come
     }
     setChatsLoading(false)
+  }
+
+  // Clear all chats from database
+  const clearChats = async () => {
+    try {
+      await api('/api/incoming', 'DELETE')
+      setChats([])
+      setSelectedChat(null)
+      setChatMessages([])
+      showToast('All chats cleared!')
+    } catch (e) {
+      console.error('Failed to clear chats:', e)
+      showToast('Failed to clear chats', 'error')
+    }
   }
 
   // Select a chat (messages are already loaded in the chat object)
@@ -1647,15 +1673,26 @@ function App() {
                 <div className="chat-list-container">
                   <div className="chat-list-header">
                     <h3><MessagesSquare size={20} /> Conversations</h3>
-                    <motion.button
-                      className="icon-btn refresh"
-                      onClick={loadChats}
-                      disabled={chatsLoading}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <RefreshCw size={18} className={chatsLoading ? 'spinning' : ''} />
-                    </motion.button>
+                    <div className="header-actions">
+                      <motion.button
+                        className="icon-btn clear"
+                        onClick={clearChats}
+                        title="Clear all chats"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <Trash2 size={18} />
+                      </motion.button>
+                      <motion.button
+                        className="icon-btn refresh"
+                        onClick={loadChats}
+                        disabled={chatsLoading}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        <RefreshCw size={18} className={chatsLoading ? 'spinning' : ''} />
+                      </motion.button>
+                    </div>
                   </div>
 
                   <div className="chat-list">
