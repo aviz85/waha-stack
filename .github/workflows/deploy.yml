@@ -19,12 +19,26 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script_stop: true
           script: |
-            echo "Home: $HOME"
-            echo "Finding waha-test..."
-            find /root -maxdepth 2 -name "waha-test" -type d 2>/dev/null || find /home -maxdepth 3 -name "waha-test" -type d 2>/dev/null || echo "Not found"
-            cd /root/waha-test || cd ~/waha-test
-            pwd
-            git pull origin main
+            REPO_DIR="$HOME/waha-stack"
+
+            # Clone if doesn't exist, otherwise pull
+            if [ ! -d "$REPO_DIR" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/aviz85/waha-stack.git "$REPO_DIR"
+            fi
+
+            cd "$REPO_DIR"
+            echo "Working in: $(pwd)"
+
+            git fetch origin
+            git reset --hard origin/main
+
+            # Create .env if it doesn't exist
+            if [ ! -f .env ]; then
+              echo "WAHA_API_KEY=${{ secrets.WAHA_API_KEY }}" > .env
+            fi
+
             docker compose build chatty-frontend --no-cache
-            docker compose up -d chatty-frontend
+            docker compose up -d
+
             echo "Deployment completed at $(date)"
