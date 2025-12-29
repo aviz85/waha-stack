@@ -6,10 +6,11 @@ import {
   Phone, Image, FileText, Smile, RefreshCw,
   Volume2, Trash2, Copy, Plus, Settings,
   StarOff, Play, Pause, Timer, List,
-  MessagesSquare, Search, ChevronRight, User, Pencil
+  MessagesSquare, Search, ChevronRight, User, Pencil,
+  Moon, Sun
 } from 'lucide-react'
 import './App.css'
-import { config, setApiKey, getStoredApiKey } from './config'
+import { config, setApiKey, getStoredApiKey, getTheme, setTheme } from './config'
 
 const WAHA_URL = config.WAHA_URL
 const API_URL = config.API_URL
@@ -313,6 +314,14 @@ function App() {
   // Settings
   const [showSettings, setShowSettings] = useState(false)
   const [apiKeyInput, setApiKeyInput] = useState(getStoredApiKey() || '')
+  const [theme, setThemeState] = useState(getTheme())
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setThemeState(newTheme)
+    setTheme(newTheme)
+  }
 
   // Conversations
   const [chats, setChats] = useState([])
@@ -907,6 +916,25 @@ function App() {
                     placeholder="Enter your WAHA API key"
                   />
                 </label>
+
+                <div className="theme-toggle">
+                  <span>Theme</span>
+                  <motion.button
+                    className={`theme-switch ${theme}`}
+                    onClick={toggleTheme}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <motion.div
+                      className="theme-switch-handle"
+                      animate={{ x: theme === 'dark' ? 28 : 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      {theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+                    </motion.div>
+                    <span className="theme-label light">Light</span>
+                    <span className="theme-label dark">Dark</span>
+                  </motion.button>
+                </div>
               </div>
 
               <div className="settings-actions">

@@ -23,6 +23,27 @@ export const setApiKey = (key) => {
 // Get current API key (reactive getter)
 export const getStoredApiKey = getApiKey
 
+// Theme management
+export const getTheme = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('theme') || 'light'
+  }
+  return 'light'
+}
+
+export const setTheme = (theme) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('theme', theme)
+    document.documentElement.setAttribute('data-theme', theme)
+  }
+}
+
+// Initialize theme on load
+if (typeof window !== 'undefined') {
+  const savedTheme = getTheme()
+  document.documentElement.setAttribute('data-theme', savedTheme)
+}
+
 export const config = {
   // WAHA API URL - proxied through nginx in production
   WAHA_URL: isDev ? 'http://localhost:3001' : '/waha',
