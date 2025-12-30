@@ -20,6 +20,11 @@ const END_KEYWORDS = ['end', 'stop', 'bye', 'quit', 'exit', 'סיום', 'ביי'
 const TYPING_SPEED_MIN = 30;  // slow typer
 const TYPING_SPEED_MAX = 60;  // fast typer
 
+// Pause/hesitation probabilities
+const TYPING_PAUSE_CHANCE = 0.3;  // 30% chance to pause while typing
+const TYPING_PAUSE_MIN = 800;     // min pause duration
+const TYPING_PAUSE_MAX = 2500;    // max pause duration
+
 /**
  * Generate random delay in ms (for human-like behavior)
  */
@@ -35,15 +40,48 @@ function sleep(ms) {
 }
 
 /**
- * Calculate typing duration based on text length
+ * Check if event should happen based on probability (0-1)
  */
-function calculateTypingDuration(text) {
+function shouldHappen(probability) {
+  return Math.random() < probability;
+}
+
+/**
+ * Calculate typing segments with possible pauses
+ * Returns array of {duration, pauseAfter} objects
+ */
+function calculateTypingSegments(text) {
   const charCount = text.length;
   const typingSpeed = randomDelay(TYPING_SPEED_MIN, TYPING_SPEED_MAX);
-  const baseDuration = (charCount / typingSpeed) * 1000;
-  // Add some randomness (±20%)
-  const variance = baseDuration * 0.2;
-  return Math.min(baseDuration + randomDelay(-variance, variance), 25000); // Max 25s (WhatsApp limit)
+  const totalDuration = Math.min((charCount / typingSpeed) * 1000, 20000);
+
+  // For short messages, no segments
+  if (totalDuration < 3000) {
+    return [{ duration: totalDuration, pauseAfter: 0 }];
+  }
+
+  // Split into 2-4 segments for longer messages
+  const numSegments = randomDelay(2, Math.min(4, Math.ceil(totalDuration / 3000)));
+  const segments = [];
+  let remainingDuration = totalDuration;
+
+  for (let i = 0; i < numSegments; i++) {
+    const isLast = i === numSegments - 1;
+    const segmentDuration = isLast
+      ? remainingDuration
+      : randomDelay(remainingDuration * 0.2, remainingDuration * 0.5);
+
+    remainingDuration -= segmentDuration;
+
+    // Add pause after segment (except last one)
+    const pauseAfter = !isLast && shouldHappen(TYPING_PAUSE_CHANCE)
+      ? randomDelay(TYPING_PAUSE_MIN, TYPING_PAUSE_MAX)
+      : 0;
+
+    segments.push({ duration: segmentDuration, pauseAfter });
+  }
+
+  return segments;
 }
 
 /**
@@ -141,23 +179,43 @@ async function sendWhatsAppMessage(chatId, text) {
     await sleep(randomDelay(300, 800));
     await markAsSeen(chatId);
 
-    // 2. Small pause before starting to type (reading time)
-    await sleep(randomDelay(500, 1500));
+    // 2. Random pause before starting to type (reading/thinking time)
+    const readingTime = randomDelay(800, 2500);
+    console.log(`[${chatId}] Reading for ${Math.round(readingTime / 1000)}s...`);
+    await sleep(readingTime);
 
-    // 3. Start typing indicator
-    await startTyping(chatId);
+    // 3. Calculate typing segments with pauses
+    const segments = calculateTypingSegments(text);
+    const totalTypingTime = segments.reduce((sum, s) => sum + s.duration + s.pauseAfter, 0);
+    console.log(`[${chatId}] Typing in ${segments.length} segment(s) for ~${Math.round(totalTypingTime / 1000)}s...`);
 
-    // 4. Wait based on message length (simulate typing)
-    const typingDuration = calculateTypingDuration(text);
-    console.log(`[${chatId}] Typing for ${Math.round(typingDuration / 1000)}s...`);
-    await sleep(typingDuration);
+    // 4. Execute typing with segments and pauses
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
 
-    // 5. Stop typing and send message
+      // Start typing
+      await startTyping(chatId);
+
+      // Type for segment duration
+      await sleep(segment.duration);
+
+      // If there's a pause after this segment, stop typing and pause
+      if (segment.pauseAfter > 0) {
+        await stopTyping(chatId);
+        console.log(`[${chatId}] Pausing (thinking)...`);
+        await sleep(segment.pauseAfter);
+      }
+    }
+
+    // 5. Stop typing
     await stopTyping(chatId);
 
-    // 6. Small delay before sending (like pressing enter)
-    await sleep(randomDelay(100, 300));
+    // 6. Random delay before sending (reviewing message, like hovering over send)
+    const preSendDelay = randomDelay(300, 1200);
+    console.log(`[${chatId}] Reviewing before send (${preSendDelay}ms)...`);
+    await sleep(preSendDelay);
 
+    // 7. Send the message
     const response = await fetch(`${WAHA_URL}/api/sendText`, {
       method: 'POST',
       headers: {
