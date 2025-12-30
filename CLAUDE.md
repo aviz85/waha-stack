@@ -5,6 +5,7 @@
 **WAHA Stack** is a WhatsApp automation platform that combines:
 - **WAHA** - WhatsApp HTTP API server (external Docker image)
 - **Chatty UI** - React dashboard for message automation with Express/SQLite backend
+- **Gemini Bot** - AI chatbot using Google Gemini 2.0 with session management
 - **Message Bar** (v1/v2) - Retro arcade-style games for interactive WhatsApp engagement
 - **Control Panel** - Lightweight HTML interface for WAHA session management
 
@@ -45,6 +46,14 @@ waha-stack/
 │   │   │   └── constants.js  # Game config
 │   │   └── services/api.js   # WAHA API integration
 │   └── package.json
+│
+├── gemini-bot/                # AI chatbot service
+│   ├── server.js             # Express server + webhook handler
+│   ├── src/
+│   │   ├── geminiClient.js   # Gemini Interactions API client
+│   │   └── sessionManager.js # Session/rate limit management
+│   ├── Dockerfile            # Container configuration
+│   └── package.json          # Dependencies
 │
 ├── docker-compose.yml         # Multi-container orchestration
 ├── deploy.sh                  # VPS deployment script
@@ -200,10 +209,26 @@ All requests require `X-Api-Key` header.
 - `POST /api/sendText` - Send message
 - `GET /api/default/auth/qr` - Get QR code
 
+### Gemini Bot API (Port 3003)
+
+**Webhook**
+- `POST /webhook` - WAHA webhook receiver (processes user messages, not groups)
+
+**Session Management**
+- `GET /health` - Health check + Gemini API status
+- `GET /session/:phone` - Get session status for a phone number
+- `DELETE /session/:phone` - Manually end a session
+
+**Session Limits:**
+- 10 minute timeout per session
+- Maximum 20 messages per session
+- 1 session per user per hour (rate limit)
+
 ---
 
 ## Database Schema (SQLite)
 
+### Chatty UI Database
 Location: `/app/data/chatty.db` (Docker) or `./chatty.db` (dev)
 
 ```sql
@@ -214,6 +239,13 @@ queue_jobs (id, phone, message, delay_seconds, status, created_at, processed_at)
 incoming_messages (id, message_id UNIQUE, chat_id, phone, sender_name, message, timestamp, is_from_me, received_at)
 ```
 
+### Gemini Bot Database
+Location: `/app/data/gemini-bot.db` (Docker) or `./gemini-bot.db` (dev)
+
+```sql
+chat_sessions (id, phone, started_at, ended_at, message_count, end_reason)
+```
+
 ---
 
 ## Environment Configuration
@@ -222,6 +254,11 @@ incoming_messages (id, message_id UNIQUE, chat_id, phone, sender_name, message, 
 ```bash
 WAHA_API_KEY=your_secure_api_key   # Generate: openssl rand -hex 32
 NODE_ENV=production
+
+# Gemini Bot (required for AI chatbot)
+GEMINI_API_KEY=your_gemini_api_key  # Get from: https://aistudio.google.com/apikey
+GEMINI_MODEL=gemini-2.0-flash
+GEMINI_SYSTEM_PROMPT="You are a helpful assistant. Be concise and friendly."
 ```
 
 ### Runtime URLs
@@ -302,6 +339,9 @@ cd chatty-ui && npm start
 | Main dashboard | `chatty-ui/src/App.jsx` |
 | Backend API | `chatty-ui/server.js` |
 | API config | `chatty-ui/src/config.js` |
+| Gemini Bot server | `gemini-bot/server.js` |
+| Gemini API client | `gemini-bot/src/geminiClient.js` |
+| Session manager | `gemini-bot/src/sessionManager.js` |
 | Game engine | `message-bar-v2/src/game/Game.js` |
 | Game constants | `message-bar-v2/src/game/constants.js` |
 | Docker setup | `docker-compose.yml` |
@@ -318,6 +358,7 @@ cd chatty-ui && npm start
 | 80 | chatty-frontend | React dashboard (nginx) |
 | 3001 | waha | WhatsApp HTTP API |
 | 3002 | chatty-backend | Express + SQLite API |
+| 3003 | gemini-bot | AI chatbot service |
 | 8080 | waha-panel | Control panel (nginx) |
 | 5173 | vite dev | Local development only |
 
