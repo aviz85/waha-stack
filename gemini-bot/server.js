@@ -10,15 +10,154 @@ const WAHA_URL = process.env.WAHA_URL || 'http://waha:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'You are a helpful assistant.';
 
-// Session start keywords (user can type these to start a new session)
-const START_KEYWORDS = ['start', 'begin', 'hello', 'hi', 'hey', 'שלום', 'היי'];
-const END_KEYWORDS = ['end', 'stop', 'bye', 'quit', 'exit', 'סיום', 'ביי'];
+// Session trigger phrase (must be included in message to start session)
+const SESSION_TRIGGER = 'הבוט של אביץ';
+
+// End keywords to close session
+const END_KEYWORDS = ['end', 'stop', 'bye', 'quit', 'exit', 'סיום', 'ביי', 'יציאה'];
+
+// Typing speed simulation (characters per second, human-like range)
+const TYPING_SPEED_MIN = 30;  // slow typer
+const TYPING_SPEED_MAX = 60;  // fast typer
 
 /**
- * Send a WhatsApp message via WAHA API
+ * Generate random delay in ms (for human-like behavior)
  */
-async function sendWhatsAppMessage(phone, text) {
+function randomDelay(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Sleep for specified milliseconds
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Calculate typing duration based on text length
+ */
+function calculateTypingDuration(text) {
+  const charCount = text.length;
+  const typingSpeed = randomDelay(TYPING_SPEED_MIN, TYPING_SPEED_MAX);
+  const baseDuration = (charCount / typingSpeed) * 1000;
+  // Add some randomness (±20%)
+  const variance = baseDuration * 0.2;
+  return Math.min(baseDuration + randomDelay(-variance, variance), 25000); // Max 25s (WhatsApp limit)
+}
+
+/**
+ * Mark message as seen (read receipts)
+ */
+async function markAsSeen(chatId) {
   try {
+    const response = await fetch(`${WAHA_URL}/api/sendSeen`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: 'default',
+        chatId: chatId
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to mark as seen:', await response.text());
+      return false;
+    }
+    console.log(`[${chatId}] Marked as seen`);
+    return true;
+  } catch (error) {
+    console.error('Error marking as seen:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Start typing indicator
+ */
+async function startTyping(chatId) {
+  try {
+    const response = await fetch(`${WAHA_URL}/api/startTyping`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: 'default',
+        chatId: chatId
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to start typing:', await response.text());
+      return false;
+    }
+    console.log(`[${chatId}] Started typing`);
+    return true;
+  } catch (error) {
+    console.error('Error starting typing:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Stop typing indicator
+ */
+async function stopTyping(chatId) {
+  try {
+    const response = await fetch(`${WAHA_URL}/api/stopTyping`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: 'default',
+        chatId: chatId
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to stop typing:', await response.text());
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error stopping typing:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Send a WhatsApp message via WAHA API with human-like behavior
+ */
+async function sendWhatsAppMessage(chatId, text) {
+  try {
+    // 1. Mark message as seen first (with small random delay)
+    await sleep(randomDelay(300, 800));
+    await markAsSeen(chatId);
+
+    // 2. Small pause before starting to type (reading time)
+    await sleep(randomDelay(500, 1500));
+
+    // 3. Start typing indicator
+    await startTyping(chatId);
+
+    // 4. Wait based on message length (simulate typing)
+    const typingDuration = calculateTypingDuration(text);
+    console.log(`[${chatId}] Typing for ${Math.round(typingDuration / 1000)}s...`);
+    await sleep(typingDuration);
+
+    // 5. Stop typing and send message
+    await stopTyping(chatId);
+
+    // 6. Small delay before sending (like pressing enter)
+    await sleep(randomDelay(100, 300));
+
     const response = await fetch(`${WAHA_URL}/api/sendText`, {
       method: 'POST',
       headers: {
@@ -27,7 +166,40 @@ async function sendWhatsAppMessage(phone, text) {
       },
       body: JSON.stringify({
         session: 'default',
-        chatId: `${phone}@c.us`,
+        chatId: chatId,
+        text: text
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to send WhatsApp message:', await response.text());
+      return false;
+    }
+    console.log(`[${chatId}] Message sent`);
+    return true;
+  } catch (error) {
+    console.error('Error sending WhatsApp message:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Quick response without full human simulation (for system messages)
+ */
+async function sendQuickMessage(chatId, text) {
+  try {
+    await markAsSeen(chatId);
+    await sleep(randomDelay(200, 500));
+
+    const response = await fetch(`${WAHA_URL}/api/sendText`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: 'default',
+        chatId: chatId,
         text: text
       })
     });
@@ -57,7 +229,7 @@ function formatTimeRemaining(ms) {
  */
 function getWelcomeMessage() {
   const timeoutMinutes = Math.floor(SESSION_TIMEOUT_MS / 60000);
-  return `🤖 *AI Chat Session Started!*
+  return `🤖 *הבוט של אביץ' - AI Chat Session Started!*
 
 📝 Session limits:
 • ${MAX_MESSAGES_PER_SESSION} messages maximum
@@ -65,19 +237,22 @@ function getWelcomeMessage() {
 • 1 session per hour
 
 Type your message to begin chatting.
-Send "end" or "stop" to end the session.`;
+Send "סיום" or "end" to end the session.`;
 }
 
 /**
  * Handle incoming webhook from WAHA
  */
 app.post('/webhook', async (req, res) => {
+  // Respond immediately to webhook (don't block WAHA)
+  res.sendStatus(200);
+
   try {
     const { event, payload } = req.body;
 
     // Only process incoming messages
     if (event !== 'message' && event !== 'message.any') {
-      return res.sendStatus(200);
+      return;
     }
 
     // Extract message details
@@ -86,12 +261,12 @@ app.post('/webhook', async (req, res) => {
 
     // Skip group messages (only handle individual chats)
     if (!chatId || chatId.includes('@g.us')) {
-      return res.sendStatus(200);
+      return;
     }
 
     // Skip messages from self
     if (message.fromMe) {
-      return res.sendStatus(200);
+      return;
     }
 
     // Extract phone number (remove @c.us suffix)
@@ -100,91 +275,107 @@ app.post('/webhook', async (req, res) => {
     // Get message text
     const text = message.body || message.text || '';
     if (!text.trim()) {
-      return res.sendStatus(200);
+      return;
     }
 
     const lowerText = text.toLowerCase().trim();
     console.log(`[${phone}] Received: ${text.substring(0, 50)}...`);
 
-    // Check for end keywords
-    if (END_KEYWORDS.includes(lowerText)) {
-      const session = sessionManager.getSession(phone);
-      if (session) {
-        sessionManager.endSession(phone, 'user_ended');
-        clearSession(phone);
-        await sendWhatsAppMessage(phone, '👋 Session ended. Thank you for chatting!');
-      } else {
-        await sendWhatsAppMessage(phone, 'No active session to end.');
-      }
-      return res.sendStatus(200);
+    // Check for end keywords (only if session is active)
+    const existingSession = sessionManager.getSession(phone);
+    if (existingSession && END_KEYWORDS.some(kw => lowerText === kw || lowerText.includes(kw))) {
+      sessionManager.endSession(phone, 'user_ended');
+      clearSession(phone);
+      await sendQuickMessage(chatId, '👋 Session ended. Thank you for chatting!\n\nTo start again, send a message with "הבוט של אביץ"');
+      return;
     }
 
     // Check if user has an active session
     let session = sessionManager.getSession(phone);
 
-    // If no session, check if they can start one
+    // If no session, check if message contains the trigger phrase
     if (!session) {
-      const canStart = sessionManager.canStartSession(phone);
+      // Check if message contains the trigger phrase
+      if (!text.includes(SESSION_TRIGGER)) {
+        // Silently ignore - don't respond to messages without trigger
+        console.log(`[${phone}] Ignored: missing trigger phrase`);
+        return;
+      }
 
+      // Check rate limit
+      const canStart = sessionManager.canStartSession(phone);
       if (!canStart.allowed) {
-        await sendWhatsAppMessage(phone,
+        await sendQuickMessage(chatId,
           `⏳ Rate limit: You can start a new session in ${canStart.waitMinutes} minute(s).`
         );
-        return res.sendStatus(200);
+        return;
       }
 
-      // Check for start keywords or just start automatically
-      if (START_KEYWORDS.includes(lowerText)) {
-        sessionManager.startSession(phone);
-        await sendWhatsAppMessage(phone, getWelcomeMessage());
-        return res.sendStatus(200);
-      }
-
-      // Auto-start session on any message
+      // Start new session
       sessionManager.startSession(phone);
       session = sessionManager.getSession(phone);
+      console.log(`[${phone}] Session started`);
 
-      // Send welcome message first
-      await sendWhatsAppMessage(phone, getWelcomeMessage());
+      // Send welcome message
+      await sendWhatsAppMessage(chatId, getWelcomeMessage());
+
+      // If the trigger message contains more than just the trigger, process it
+      const messageWithoutTrigger = text.replace(SESSION_TRIGGER, '').trim();
+      if (!messageWithoutTrigger) {
+        // Only trigger phrase, wait for next message
+        return;
+      }
+
+      // Process the remaining message as first question
+      const canSend = sessionManager.canSendMessage(phone);
+      if (!canSend.allowed) {
+        return;
+      }
+
+      // Get response from Gemini
+      const result = await sendMessage(phone, messageWithoutTrigger, SYSTEM_PROMPT);
+
+      if (result.success) {
+        sessionManager.recordMessage(phone);
+        const footer = `\n\n_[${canSend.messagesRemaining - 1} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
+        await sendWhatsAppMessage(chatId, result.text + footer);
+      } else {
+        await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
+      }
+      return;
     }
 
-    // Check if session can accept more messages
+    // Session exists - process message
     const canSend = sessionManager.canSendMessage(phone);
 
     if (!canSend.allowed) {
       clearSession(phone);
 
       if (canSend.reason === 'max_messages') {
-        await sendWhatsAppMessage(phone,
-          `📊 Session ended: Maximum ${MAX_MESSAGES_PER_SESSION} messages reached.\n\nYou can start a new session in 1 hour.`
+        await sendQuickMessage(chatId,
+          `📊 Session ended: Maximum ${MAX_MESSAGES_PER_SESSION} messages reached.\n\nYou can start a new session in 1 hour by sending "הבוט של אביץ"`
         );
       } else if (canSend.reason === 'timeout') {
-        await sendWhatsAppMessage(phone,
-          `⏰ Session ended: Timeout reached.\n\nYou can start a new session in 1 hour.`
+        await sendQuickMessage(chatId,
+          `⏰ Session ended: Timeout reached.\n\nYou can start a new session in 1 hour by sending "הבוט של אביץ"`
         );
       }
-      return res.sendStatus(200);
+      return;
     }
 
-    // Send message to Gemini
+    // Get response from Gemini
     const result = await sendMessage(phone, text, SYSTEM_PROMPT);
 
     if (result.success) {
-      // Record the message
       sessionManager.recordMessage(phone);
-
-      // Add session info footer
       const footer = `\n\n_[${canSend.messagesRemaining - 1} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
-
-      await sendWhatsAppMessage(phone, result.text + footer);
+      await sendWhatsAppMessage(chatId, result.text + footer);
     } else {
-      await sendWhatsAppMessage(phone, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
+      await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
     }
 
-    res.sendStatus(200);
   } catch (error) {
     console.error('Webhook error:', error);
-    res.sendStatus(500);
   }
 });
 
@@ -196,7 +387,8 @@ app.get('/health', async (req, res) => {
   res.json({
     status: 'ok',
     gemini: geminiHealth,
-    activeSessions: sessionManager.activeSessions.size
+    activeSessions: sessionManager.activeSessions.size,
+    trigger: SESSION_TRIGGER
   });
 });
 
@@ -227,6 +419,7 @@ setInterval(() => {
 app.listen(PORT, () => {
   console.log(`🤖 Gemini Bot server running on port ${PORT}`);
   console.log(`📡 Expecting webhooks from WAHA at ${WAHA_URL}`);
+  console.log(`🎯 Session trigger: "${SESSION_TRIGGER}"`);
   console.log(`⏱️  Session timeout: ${SESSION_TIMEOUT_MS / 60000} minutes`);
   console.log(`📊 Max messages per session: ${MAX_MESSAGES_PER_SESSION}`);
   console.log(`🔒 Rate limit: 1 session per hour`);
