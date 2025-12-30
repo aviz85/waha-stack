@@ -11,9 +11,11 @@ services:
       - WHATSAPP_DEFAULT_ENGINE=NOWEB
       - WAHA_LOG_LEVEL=info
       - WAHA_PRINT_QR=True
+      # Auto-restart sessions on WAHA restart
+      - WAHA_WORKER_RESTART_SESSIONS=True
       # Webhook to gemini bot (primary handler)
       - WHATSAPP_HOOK_URL=http://gemini-bot:3003/webhook
-      - WHATSAPP_HOOK_EVENTS=message,message.any,session.status
+      - WHATSAPP_HOOK_EVENTS=message,session.status
     volumes:
       - waha_sessions:/app/.sessions
       - waha_data:/app/.waha

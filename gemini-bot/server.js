@@ -528,8 +528,8 @@ app.post('/webhook', async (req, res) => {
   try {
     const { event, payload } = req.body;
 
-    // Only process incoming messages
-    if (event !== 'message' && event !== 'message.any') {
+    // Only process 'message' events (ignore 'message.any' to prevent duplicates)
+    if (event !== 'message') {
       return;
     }
 
@@ -640,11 +640,15 @@ app.post('/webhook', async (req, res) => {
         const messageCount = isVoiceMessage ? 2 : 1;
         sessionManager.recordMessage(phone, messageCount);
         const remaining = canSend.messagesRemaining - messageCount;
-        const footer = `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`;
+        const timeRemainingMin = canSend.timeRemainingMs / 60000;
+        // Only show footer when <= 3 messages or <= 5 minutes remaining
+        const footer = (remaining <= 3 || timeRemainingMin <= 5)
+          ? `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`
+          : '';
         // Use sendResponse which may send voice randomly (higher chance if replying to voice)
         await sendResponse(chatId, result.text + footer, isVoiceMessage);
       } else {
-        await sendQuickMessage(chatId, `❌ מצטער, לא הצלחתי לעבד את זה. שגיאה: ${result.error}`);
+        await sendQuickMessage(chatId, `❌ שגיאה: ${result.error}`);
       }
       return;
     }
@@ -676,11 +680,15 @@ app.post('/webhook', async (req, res) => {
     if (result.success) {
       sessionManager.recordMessage(phone, messageCount);
       const remaining = canSend.messagesRemaining - messageCount;
-      const footer = `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`;
+      const timeRemainingMin = canSend.timeRemainingMs / 60000;
+      // Only show footer when <= 3 messages or <= 5 minutes remaining
+      const footer = (remaining <= 3 || timeRemainingMin <= 5)
+        ? `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`
+        : '';
       // Use sendResponse which may send voice randomly (higher chance if replying to voice)
       await sendResponse(chatId, result.text + footer, isVoiceMessage);
     } else {
-      await sendQuickMessage(chatId, `❌ מצטער, לא הצלחתי לעבד את זה. שגיאה: ${result.error}`);
+      await sendQuickMessage(chatId, `❌ שגיאה: ${result.error}`);
     }
 
   } catch (error) {
