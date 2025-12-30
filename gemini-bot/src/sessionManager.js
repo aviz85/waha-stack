@@ -29,7 +29,39 @@ class SessionManager {
       );
 
       CREATE INDEX IF NOT EXISTS idx_phone_started ON chat_sessions(phone, started_at);
+
+      CREATE TABLE IF NOT EXISTS bot_config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
     `);
+  }
+
+  // Get configuration value
+  getConfig(key) {
+    const row = this.db.prepare('SELECT value FROM bot_config WHERE key = ?').get(key);
+    return row ? row.value : null;
+  }
+
+  // Set configuration value
+  setConfig(key, value) {
+    const now = Date.now();
+    this.db.prepare(`
+      INSERT INTO bot_config (key, value, updated_at) VALUES (?, ?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?
+    `).run(key, value, now, value, now);
+    return { key, value, updatedAt: now };
+  }
+
+  // Get all configuration
+  getAllConfig() {
+    const rows = this.db.prepare('SELECT key, value, updated_at FROM bot_config').all();
+    const config = {};
+    for (const row of rows) {
+      config[row.key] = { value: row.value, updatedAt: row.updated_at };
+    }
+    return config;
   }
 
   // Check if user can start a new session (rate limit: 1 per hour)

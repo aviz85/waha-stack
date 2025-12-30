@@ -9,7 +9,26 @@ app.use(express.json());
 const PORT = process.env.PORT || 3003;
 const WAHA_URL = process.env.WAHA_URL || 'http://waha:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
-const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'אתה עוזר AI ידידותי בשם הבוט של אביץ. ענה בעברית בצורה תמציתית וידידותית.';
+const DEFAULT_SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'אתה עוזר AI ידידותי בשם הבוט של אביץ. ענה בעברית בצורה תמציתית וידידותית.';
+
+/**
+ * Get the effective system prompt (from DB or default)
+ */
+function getSystemPrompt() {
+  const dbPrompt = sessionManager.getConfig('system_prompt');
+  return dbPrompt || DEFAULT_SYSTEM_PROMPT;
+}
+
+/**
+ * API key authentication middleware
+ */
+function requireApiKey(req, res, next) {
+  const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+  if (!apiKey || apiKey !== WAHA_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing API key' });
+  }
+  next();
+}
 
 // Recording indicator settings
 const RECORDING_DURATION_MIN = 2000;  // min recording indicator duration
@@ -614,7 +633,7 @@ app.post('/webhook', async (req, res) => {
       }
 
       // Get response from Gemini
-      const result = await sendMessage(phone, messageWithoutTrigger, SYSTEM_PROMPT);
+      const result = await sendMessage(phone, messageWithoutTrigger, getSystemPrompt());
 
       if (result.success) {
         // Voice messages count as 2 for rate limiting
@@ -652,7 +671,7 @@ app.post('/webhook', async (req, res) => {
     }
 
     // Get response from Gemini
-    const result = await sendMessage(phone, text, SYSTEM_PROMPT);
+    const result = await sendMessage(phone, text, getSystemPrompt());
 
     if (result.success) {
       sessionManager.recordMessage(phone, messageCount);
@@ -704,6 +723,78 @@ app.delete('/session/:phone', (req, res) => {
   sessionManager.endSession(phone, 'admin');
   clearSession(phone);
   res.json({ success: true, message: 'Session ended' });
+});
+
+// ============================================
+// Configuration API (requires API key)
+// ============================================
+
+/**
+ * Get current system prompt
+ */
+app.get('/api/config/system-prompt', requireApiKey, (req, res) => {
+  const currentPrompt = getSystemPrompt();
+  const dbPrompt = sessionManager.getConfig('system_prompt');
+  res.json({
+    systemPrompt: currentPrompt,
+    source: dbPrompt ? 'database' : 'default',
+    default: DEFAULT_SYSTEM_PROMPT
+  });
+});
+
+/**
+ * Update system prompt
+ */
+app.put('/api/config/system-prompt', requireApiKey, (req, res) => {
+  const { systemPrompt } = req.body;
+
+  if (!systemPrompt || typeof systemPrompt !== 'string') {
+    return res.status(400).json({ error: 'systemPrompt is required and must be a string' });
+  }
+
+  if (systemPrompt.trim().length < 10) {
+    return res.status(400).json({ error: 'systemPrompt must be at least 10 characters' });
+  }
+
+  const result = sessionManager.setConfig('system_prompt', systemPrompt.trim());
+  console.log(`[Config] System prompt updated`);
+
+  res.json({
+    success: true,
+    systemPrompt: result.value,
+    updatedAt: new Date(result.updatedAt).toISOString()
+  });
+});
+
+/**
+ * Reset system prompt to default
+ */
+app.delete('/api/config/system-prompt', requireApiKey, (req, res) => {
+  // Remove from database to fall back to default
+  sessionManager.db.prepare('DELETE FROM bot_config WHERE key = ?').run('system_prompt');
+  console.log(`[Config] System prompt reset to default`);
+
+  res.json({
+    success: true,
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    source: 'default'
+  });
+});
+
+/**
+ * Get all configuration
+ */
+app.get('/api/config', requireApiKey, (req, res) => {
+  const allConfig = sessionManager.getAllConfig();
+  res.json({
+    config: allConfig,
+    defaults: {
+      system_prompt: DEFAULT_SYSTEM_PROMPT
+    },
+    effective: {
+      system_prompt: getSystemPrompt()
+    }
+  });
 });
 
 // Cleanup expired sessions every minute

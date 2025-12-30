@@ -235,6 +235,21 @@ All requests require `X-Api-Key` header.
 - Speech-to-Text: Transcribes incoming voice messages
 - Human-like behavior: typing indicators, recording indicators, random delays
 
+**Configuration API (requires X-Api-Key header):**
+- `GET /api/config` - Get all configuration
+- `GET /api/config/system-prompt` - Get current system prompt
+- `PUT /api/config/system-prompt` - Update system prompt `{systemPrompt: "..."}`
+- `DELETE /api/config/system-prompt` - Reset to default prompt
+
+**CLI Tool:**
+```bash
+cd gemini-bot
+WAHA_API_KEY=your_key node cli.js get-prompt      # Get current prompt
+WAHA_API_KEY=your_key node cli.js set-prompt "..." # Set new prompt
+WAHA_API_KEY=your_key node cli.js reset-prompt    # Reset to default
+WAHA_API_KEY=your_key node cli.js config          # Get all config
+```
+
 ---
 
 ## Database Schema (SQLite)
@@ -255,6 +270,7 @@ Location: `/app/data/gemini-bot.db` (Docker) or `./gemini-bot.db` (dev)
 
 ```sql
 chat_sessions (id, phone, started_at, ended_at, message_count, end_reason)
+bot_config (key PRIMARY KEY, value, updated_at)
 ```
 
 ---
@@ -361,6 +377,7 @@ cd chatty-ui && npm start
 | Gemini API client | `gemini-bot/src/geminiClient.js` |
 | Session manager | `gemini-bot/src/sessionManager.js` |
 | ElevenLabs TTS/STT | `gemini-bot/src/elevenLabsClient.js` |
+| Bot config CLI | `gemini-bot/cli.js` |
 | Game engine | `message-bar-v2/src/game/Game.js` |
 | Game constants | `message-bar-v2/src/game/constants.js` |
 | Docker setup | `docker-compose.yml` |
