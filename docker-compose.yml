@@ -82,9 +82,15 @@ services:
       - PORT=3003
       - WAHA_URL=http://waha:3000
       - WAHA_API_KEY=${WAHA_API_KEY}
+      # Gemini AI
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       - SYSTEM_PROMPT=${GEMINI_SYSTEM_PROMPT:-You are a helpful assistant.}
+      # ElevenLabs Voice (optional)
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-EXAVITQu4vr4xnSDxMaL}
+      - ELEVENLABS_MODEL=${ELEVENLABS_MODEL:-eleven_multilingual_v2}
+      - ELEVENLABS_STT_MODEL=${ELEVENLABS_STT_MODEL:-scribe_v1}
     volumes:
       - gemini_data:/app/data
     networks:

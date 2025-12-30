@@ -1,6 +1,7 @@
 import express from 'express';
 import sessionManager, { SESSION_TIMEOUT_MS, MAX_MESSAGES_PER_SESSION } from './src/sessionManager.js';
 import { sendMessage, clearSession, healthCheck } from './src/geminiClient.js';
+import * as elevenLabs from './src/elevenLabsClient.js';
 
 const app = express();
 app.use(express.json());
@@ -9,6 +10,10 @@ const PORT = process.env.PORT || 3003;
 const WAHA_URL = process.env.WAHA_URL || 'http://waha:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'You are a helpful assistant.';
+
+// Recording indicator settings
+const RECORDING_DURATION_MIN = 2000;  // min recording indicator duration
+const RECORDING_DURATION_MAX = 5000;  // max recording indicator duration
 
 // Session trigger phrase (must be included in message to start session)
 const SESSION_TRIGGER = 'הבוט של אביץ';
@@ -171,6 +176,94 @@ async function stopTyping(chatId) {
 }
 
 /**
+ * Start recording indicator (for voice messages)
+ */
+async function startRecording(chatId) {
+  try {
+    const response = await fetch(`${WAHA_URL}/api/default/presence`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        chatId: chatId,
+        presence: 'recording'
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to start recording:', await response.text());
+      return false;
+    }
+    console.log(`[${chatId}] Started recording indicator`);
+    return true;
+  } catch (error) {
+    console.error('Error starting recording:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Send a voice message via WAHA API
+ */
+async function sendVoiceMessage(chatId, audioBase64, mimetype = 'audio/mpeg') {
+  try {
+    const response = await fetch(`${WAHA_URL}/api/sendVoice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': WAHA_API_KEY
+      },
+      body: JSON.stringify({
+        session: 'default',
+        chatId: chatId,
+        file: {
+          mimetype: mimetype,
+          filename: 'voice.mp3',
+          data: audioBase64
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Failed to send voice message:', await response.text());
+      return false;
+    }
+    console.log(`[${chatId}] Voice message sent`);
+    return true;
+  } catch (error) {
+    console.error('Error sending voice message:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Download media from WAHA
+ */
+async function downloadMedia(messageId) {
+  try {
+    const response = await fetch(`${WAHA_URL}/api/default/messages/${messageId}/download`, {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': WAHA_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Failed to download media:', await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error downloading media:', error.message);
+    return null;
+  }
+}
+
+/**
  * Send a WhatsApp message via WAHA API with human-like behavior
  */
 async function sendWhatsAppMessage(chatId, text) {
@@ -274,6 +367,114 @@ async function sendQuickMessage(chatId, text) {
 }
 
 /**
+ * Send a voice message with human-like recording behavior
+ */
+async function sendWhatsAppVoiceMessage(chatId, text) {
+  try {
+    // 1. Mark message as seen
+    await sleep(randomDelay(300, 800));
+    await markAsSeen(chatId);
+
+    // 2. Thinking time before recording
+    const thinkingTime = randomDelay(800, 2000);
+    console.log(`[${chatId}] Thinking before recording (${thinkingTime}ms)...`);
+    await sleep(thinkingTime);
+
+    // 3. Generate audio with ElevenLabs
+    console.log(`[${chatId}] Generating voice with ElevenLabs...`);
+    const audio = await elevenLabs.generateSpeech(text);
+
+    if (!audio) {
+      console.log(`[${chatId}] Voice generation failed, falling back to text`);
+      return sendWhatsAppMessage(chatId, text);
+    }
+
+    // 4. Show recording indicator
+    await startRecording(chatId);
+
+    // 5. Wait based on audio size (simulate recording time)
+    const recordingTime = randomDelay(RECORDING_DURATION_MIN, RECORDING_DURATION_MAX);
+    console.log(`[${chatId}] Recording for ${recordingTime}ms...`);
+    await sleep(recordingTime);
+
+    // 6. Stop presence indicator
+    await stopTyping(chatId);
+
+    // 7. Small delay before sending
+    await sleep(randomDelay(200, 500));
+
+    // 8. Send voice message
+    return sendVoiceMessage(chatId, audio.base64, audio.mimetype);
+
+  } catch (error) {
+    console.error('Error sending voice message:', error.message);
+    // Fallback to text
+    return sendWhatsAppMessage(chatId, text);
+  }
+}
+
+// Voice response chances
+const VOICE_REPLY_CHANCE_NORMAL = 0.10;  // 10% for text messages
+const VOICE_REPLY_CHANCE_TO_VOICE = 0.70; // 70% when replying to voice
+
+/**
+ * Send response - randomly chooses voice or text
+ * @param {string} chatId - Chat ID to send to
+ * @param {string} text - Text to send
+ * @param {boolean} replyingToVoice - Whether we're replying to a voice message
+ */
+async function sendResponse(chatId, text, replyingToVoice = false) {
+  // Determine voice chance based on context
+  const voiceChance = replyingToVoice ? VOICE_REPLY_CHANCE_TO_VOICE : VOICE_REPLY_CHANCE_NORMAL;
+
+  // Check if ElevenLabs is enabled and random chance
+  if (elevenLabs.isEnabled() && Math.random() < voiceChance) {
+    console.log(`[${chatId}] Sending as voice message (${replyingToVoice ? 'replying to voice' : 'random'})`);
+    return sendWhatsAppVoiceMessage(chatId, text);
+  }
+
+  // Send as text
+  return sendWhatsAppMessage(chatId, text);
+}
+
+/**
+ * Transcribe voice message to text
+ */
+async function transcribeVoiceMessage(message) {
+  if (!elevenLabs.isEnabled()) {
+    return null;
+  }
+
+  try {
+    // Get media URL from message
+    const mediaUrl = message.media?.url || message.mediaUrl;
+    const mimetype = message.media?.mimetype || message.mimetype || 'audio/ogg';
+
+    if (!mediaUrl) {
+      // Try to download via message ID
+      const mediaData = await downloadMedia(message.id);
+      if (mediaData?.data) {
+        return elevenLabs.transcribeAudio(mediaData.data, mimetype);
+      }
+      return null;
+    }
+
+    // Download audio from URL
+    const audioBuffer = await elevenLabs.downloadAudio(mediaUrl);
+    if (!audioBuffer) {
+      return null;
+    }
+
+    // Transcribe
+    return elevenLabs.transcribeAudio(audioBuffer, mimetype);
+
+  } catch (error) {
+    console.error('Transcription error:', error.message);
+    return null;
+  }
+}
+
+/**
  * Format time remaining for user display
  */
 function formatTimeRemaining(ms) {
@@ -330,14 +531,36 @@ app.post('/webhook', async (req, res) => {
     // Extract phone number (remove @c.us suffix)
     const phone = chatId.replace('@c.us', '');
 
-    // Get message text
-    const text = message.body || message.text || '';
+    // Check message type - handle voice messages
+    const messageType = message.type || message.messageType || 'text';
+    const isVoiceMessage = messageType === 'ptt' || messageType === 'audio';
+
+    // Get message text (or transcribe voice)
+    let text = message.body || message.text || '';
+
+    if (isVoiceMessage) {
+      console.log(`[${phone}] Received voice message, transcribing...`);
+      const transcription = await transcribeVoiceMessage(message);
+      if (transcription) {
+        text = transcription;
+        console.log(`[${phone}] Transcribed: ${text.substring(0, 50)}...`);
+      } else {
+        console.log(`[${phone}] Could not transcribe voice message`);
+        // If we can't transcribe and there's an active session, let user know
+        const session = sessionManager.getSession(phone);
+        if (session) {
+          await sendQuickMessage(chatId, "🎤 I received your voice message but couldn't transcribe it. Please try sending text instead.");
+        }
+        return;
+      }
+    }
+
     if (!text.trim()) {
       return;
     }
 
     const lowerText = text.toLowerCase().trim();
-    console.log(`[${phone}] Received: ${text.substring(0, 50)}...`);
+    console.log(`[${phone}] ${isVoiceMessage ? '🎤 ' : ''}Received: ${text.substring(0, 50)}...`);
 
     // Check for end keywords (only if session is active)
     const existingSession = sessionManager.getSession(phone);
@@ -394,9 +617,13 @@ app.post('/webhook', async (req, res) => {
       const result = await sendMessage(phone, messageWithoutTrigger, SYSTEM_PROMPT);
 
       if (result.success) {
-        sessionManager.recordMessage(phone);
-        const footer = `\n\n_[${canSend.messagesRemaining - 1} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
-        await sendWhatsAppMessage(chatId, result.text + footer);
+        // Voice messages count as 2 for rate limiting
+        const messageCount = isVoiceMessage ? 2 : 1;
+        sessionManager.recordMessage(phone, messageCount);
+        const remaining = canSend.messagesRemaining - messageCount;
+        const footer = `\n\n_[${remaining} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
+        // Use sendResponse which may send voice randomly (higher chance if replying to voice)
+        await sendResponse(chatId, result.text + footer, isVoiceMessage);
       } else {
         await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
       }
@@ -406,10 +633,13 @@ app.post('/webhook', async (req, res) => {
     // Session exists - process message
     const canSend = sessionManager.canSendMessage(phone);
 
-    if (!canSend.allowed) {
+    // Voice messages count as 2 for rate limiting
+    const messageCount = isVoiceMessage ? 2 : 1;
+
+    if (!canSend.allowed || canSend.messagesRemaining < messageCount) {
       clearSession(phone);
 
-      if (canSend.reason === 'max_messages') {
+      if (canSend.reason === 'max_messages' || canSend.messagesRemaining < messageCount) {
         await sendQuickMessage(chatId,
           `📊 Session ended: Maximum ${MAX_MESSAGES_PER_SESSION} messages reached.\n\nYou can start a new session in 1 hour by sending "הבוט של אביץ"`
         );
@@ -425,9 +655,11 @@ app.post('/webhook', async (req, res) => {
     const result = await sendMessage(phone, text, SYSTEM_PROMPT);
 
     if (result.success) {
-      sessionManager.recordMessage(phone);
-      const footer = `\n\n_[${canSend.messagesRemaining - 1} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
-      await sendWhatsAppMessage(chatId, result.text + footer);
+      sessionManager.recordMessage(phone, messageCount);
+      const remaining = canSend.messagesRemaining - messageCount;
+      const footer = `\n\n_[${remaining} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
+      // Use sendResponse which may send voice randomly (higher chance if replying to voice)
+      await sendResponse(chatId, result.text + footer, isVoiceMessage);
     } else {
       await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
     }
@@ -442,9 +674,15 @@ app.post('/webhook', async (req, res) => {
  */
 app.get('/health', async (req, res) => {
   const geminiHealth = await healthCheck();
+  const elevenLabsHealth = await elevenLabs.healthCheck();
   res.json({
     status: 'ok',
     gemini: geminiHealth,
+    elevenLabs: elevenLabsHealth,
+    voiceChances: {
+      normal: VOICE_REPLY_CHANCE_NORMAL,
+      replyToVoice: VOICE_REPLY_CHANCE_TO_VOICE
+    },
     activeSessions: sessionManager.activeSessions.size,
     trigger: SESSION_TRIGGER
   });

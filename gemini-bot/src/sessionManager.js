@@ -112,11 +112,12 @@ class SessionManager {
   }
 
   // Increment message count
-  recordMessage(phone) {
+  // count: how many messages to add (voice messages count as 2)
+  recordMessage(phone, count = 1) {
     const session = this.activeSessions.get(phone);
     if (!session) return;
 
-    session.messageCount++;
+    session.messageCount += count;
 
     // Update database
     this.db.prepare(`
