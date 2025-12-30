@@ -71,6 +71,28 @@ function shouldHappen(probability) {
 }
 
 /**
+ * Build footer showing remaining messages/time - only what's relevant
+ */
+function buildRemainingFooter(remaining, timeRemainingMin, timeRemainingMs) {
+  const lowMessages = remaining <= 3;
+  const lowTime = timeRemainingMin <= 5;
+
+  if (!lowMessages && !lowTime) {
+    return '';
+  }
+
+  const parts = [];
+  if (lowMessages) {
+    parts.push(`נותרו ${remaining} הודעות`);
+  }
+  if (lowTime) {
+    parts.push(`${formatTimeRemaining(timeRemainingMs)} נותרו`);
+  }
+
+  return `\n\n_[${parts.join(' | ')}]_`;
+}
+
+/**
  * Calculate typing segments with possible pauses
  * Returns array of {duration, pauseAfter} objects
  */
@@ -554,11 +576,16 @@ app.post('/webhook', async (req, res) => {
     const messageType = message.type || message.messageType || 'text';
     const isVoiceMessage = messageType === 'ptt' || messageType === 'audio';
 
+    // Debug: log message type for voice debugging
+    if (message.hasMedia || messageType !== 'text') {
+      console.log(`[${phone}] Media message - type: ${messageType}, hasMedia: ${message.hasMedia}`);
+    }
+
     // Get message text (or transcribe voice)
     let text = message.body || message.text || '';
 
     if (isVoiceMessage) {
-      console.log(`[${phone}] Received voice message, transcribing...`);
+      console.log(`[${phone}] 🎤 Voice message detected, transcribing...`);
       const transcription = await transcribeVoiceMessage(message);
       if (transcription) {
         text = transcription;
@@ -616,24 +643,18 @@ app.post('/webhook', async (req, res) => {
       session = sessionManager.getSession(phone);
       console.log(`[${phone}] Session started`);
 
-      // Send welcome message
-      await sendWhatsAppMessage(chatId, getWelcomeMessage());
-
-      // If the trigger message contains more than just the trigger, process it
+      // No intro message - process first message directly
+      // Use full message or remove trigger phrase
       const messageWithoutTrigger = text.replace(SESSION_TRIGGER, '').trim();
-      if (!messageWithoutTrigger) {
-        // Only trigger phrase, wait for next message
-        return;
-      }
+      const firstMessage = messageWithoutTrigger || 'שלום!'; // Default if only trigger phrase
 
-      // Process the remaining message as first question
       const canSend = sessionManager.canSendMessage(phone);
       if (!canSend.allowed) {
         return;
       }
 
-      // Get response from Gemini
-      const result = await sendMessage(phone, messageWithoutTrigger, getSystemPrompt());
+      // Get response from Gemini for first message
+      const result = await sendMessage(phone, firstMessage, getSystemPrompt());
 
       if (result.success) {
         // Voice messages count as 2 for rate limiting
@@ -641,10 +662,8 @@ app.post('/webhook', async (req, res) => {
         sessionManager.recordMessage(phone, messageCount);
         const remaining = canSend.messagesRemaining - messageCount;
         const timeRemainingMin = canSend.timeRemainingMs / 60000;
-        // Only show footer when <= 3 messages or <= 5 minutes remaining
-        const footer = (remaining <= 3 || timeRemainingMin <= 5)
-          ? `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`
-          : '';
+        // Build footer - only show what's relevant
+        const footer = buildRemainingFooter(remaining, timeRemainingMin, canSend.timeRemainingMs);
         // Use sendResponse which may send voice randomly (higher chance if replying to voice)
         await sendResponse(chatId, result.text + footer, isVoiceMessage);
       } else {
@@ -681,10 +700,8 @@ app.post('/webhook', async (req, res) => {
       sessionManager.recordMessage(phone, messageCount);
       const remaining = canSend.messagesRemaining - messageCount;
       const timeRemainingMin = canSend.timeRemainingMs / 60000;
-      // Only show footer when <= 3 messages or <= 5 minutes remaining
-      const footer = (remaining <= 3 || timeRemainingMin <= 5)
-        ? `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`
-        : '';
+      // Build footer - only show what's relevant
+      const footer = buildRemainingFooter(remaining, timeRemainingMin, canSend.timeRemainingMs);
       // Use sendResponse which may send voice randomly (higher chance if replying to voice)
       await sendResponse(chatId, result.text + footer, isVoiceMessage);
     } else {
