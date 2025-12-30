@@ -11,6 +11,8 @@
 
 All components run in Docker containers with shared networking.
 
+**Default Language: Hebrew (עברית)** - All user-facing messages and bot responses default to Hebrew.
+
 ---
 
 ## Directory Structure
@@ -47,11 +49,12 @@ waha-stack/
 │   │   └── services/api.js   # WAHA API integration
 │   └── package.json
 │
-├── gemini-bot/                # AI chatbot service
+├── gemini-bot/                # AI chatbot service (Hebrew default)
 │   ├── server.js             # Express server + webhook handler
 │   ├── src/
 │   │   ├── geminiClient.js   # Gemini Interactions API client
-│   │   └── sessionManager.js # Session/rate limit management
+│   │   ├── sessionManager.js # Session/rate limit management
+│   │   └── elevenLabsClient.js # ElevenLabs TTS/STT for voice messages
 │   ├── Dockerfile            # Container configuration
 │   └── package.json          # Dependencies
 │
@@ -215,7 +218,7 @@ All requests require `X-Api-Key` header.
 - `POST /webhook` - WAHA webhook receiver (processes user messages, not groups)
 
 **Session Management**
-- `GET /health` - Health check + Gemini API status
+- `GET /health` - Health check + Gemini/ElevenLabs status
 - `GET /session/:phone` - Get session status for a phone number
 - `DELETE /session/:phone` - Manually end a session
 
@@ -223,6 +226,14 @@ All requests require `X-Api-Key` header.
 - 10 minute timeout per session
 - Maximum 20 messages per session
 - 1 session per user per hour (rate limit)
+- Voice messages count as 2 messages for rate limiting
+
+**Trigger Phrase:** "הבוט של אביץ" - Must be included in message to start session
+
+**Voice Features (ElevenLabs):**
+- Text-to-Speech: 10% chance for text replies, 70% for voice replies
+- Speech-to-Text: Transcribes incoming voice messages
+- Human-like behavior: typing indicators, recording indicators, random delays
 
 ---
 
@@ -258,7 +269,14 @@ NODE_ENV=production
 # Gemini Bot (required for AI chatbot)
 GEMINI_API_KEY=your_gemini_api_key  # Get from: https://aistudio.google.com/apikey
 GEMINI_MODEL=gemini-2.0-flash
-GEMINI_SYSTEM_PROMPT="You are a helpful assistant. Be concise and friendly."
+# Default language is Hebrew
+GEMINI_SYSTEM_PROMPT="אתה עוזר AI ידידותי בשם 'הבוט של אביץ'. ענה בעברית בצורה תמציתית וידידותית."
+
+# ElevenLabs Voice (optional - for voice messages)
+ELEVENLABS_API_KEY=your_elevenlabs_key  # Get from: https://elevenlabs.io/
+ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL  # Sarah (multilingual)
+ELEVENLABS_MODEL=eleven_multilingual_v2   # TTS model
+ELEVENLABS_STT_MODEL=scribe_v1            # STT model
 ```
 
 ### Runtime URLs
@@ -342,6 +360,7 @@ cd chatty-ui && npm start
 | Gemini Bot server | `gemini-bot/server.js` |
 | Gemini API client | `gemini-bot/src/geminiClient.js` |
 | Session manager | `gemini-bot/src/sessionManager.js` |
+| ElevenLabs TTS/STT | `gemini-bot/src/elevenLabsClient.js` |
 | Game engine | `message-bar-v2/src/game/Game.js` |
 | Game constants | `message-bar-v2/src/game/constants.js` |
 | Docker setup | `docker-compose.yml` |

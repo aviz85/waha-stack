@@ -9,7 +9,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3003;
 const WAHA_URL = process.env.WAHA_URL || 'http://waha:3000';
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
-const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'You are a helpful assistant.';
+const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || 'אתה עוזר AI ידידותי בשם הבוט של אביץ. ענה בעברית בצורה תמציתית וידידותית.';
 
 // Recording indicator settings
 const RECORDING_DURATION_MIN = 2000;  // min recording indicator duration
@@ -475,12 +475,12 @@ async function transcribeVoiceMessage(message) {
 }
 
 /**
- * Format time remaining for user display
+ * Format time remaining for user display (Hebrew)
  */
 function formatTimeRemaining(ms) {
   const minutes = Math.floor(ms / 60000);
   const seconds = Math.floor((ms % 60000) / 1000);
-  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  return minutes > 0 ? `${minutes} דק' ${seconds} שנ'` : `${seconds} שנ'`;
 }
 
 /**
@@ -488,15 +488,15 @@ function formatTimeRemaining(ms) {
  */
 function getWelcomeMessage() {
   const timeoutMinutes = Math.floor(SESSION_TIMEOUT_MS / 60000);
-  return `🤖 *הבוט של אביץ' - AI Chat Session Started!*
+  return `🤖 *הבוט של אביץ' - שיחה התחילה!*
 
-📝 Session limits:
-• ${MAX_MESSAGES_PER_SESSION} messages maximum
-• ${timeoutMinutes} minute timeout
-• 1 session per hour
+📝 מגבלות השיחה:
+• עד ${MAX_MESSAGES_PER_SESSION} הודעות
+• זמן קצוב: ${timeoutMinutes} דקות
+• שיחה אחת בשעה
 
-Type your message to begin chatting.
-Send "סיום" or "end" to end the session.`;
+שלח/י הודעה כדי להתחיל.
+שלח/י "סיום" לסיום השיחה.`;
 }
 
 /**
@@ -549,7 +549,7 @@ app.post('/webhook', async (req, res) => {
         // If we can't transcribe and there's an active session, let user know
         const session = sessionManager.getSession(phone);
         if (session) {
-          await sendQuickMessage(chatId, "🎤 I received your voice message but couldn't transcribe it. Please try sending text instead.");
+          await sendQuickMessage(chatId, "🎤 קיבלתי את ההודעה הקולית אבל לא הצלחתי לתמלל אותה. נסה/י לשלוח טקסט במקום.");
         }
         return;
       }
@@ -567,7 +567,7 @@ app.post('/webhook', async (req, res) => {
     if (existingSession && END_KEYWORDS.some(kw => lowerText === kw || lowerText.includes(kw))) {
       sessionManager.endSession(phone, 'user_ended');
       clearSession(phone);
-      await sendQuickMessage(chatId, '👋 Session ended. Thank you for chatting!\n\nTo start again, send a message with "הבוט של אביץ"');
+      await sendQuickMessage(chatId, '👋 השיחה הסתיימה. תודה על הצ\'אט!\n\nכדי להתחיל שוב, שלח/י הודעה עם "הבוט של אביץ"');
       return;
     }
 
@@ -587,7 +587,7 @@ app.post('/webhook', async (req, res) => {
       const canStart = sessionManager.canStartSession(phone);
       if (!canStart.allowed) {
         await sendQuickMessage(chatId,
-          `⏳ Rate limit: You can start a new session in ${canStart.waitMinutes} minute(s).`
+          `⏳ הגבלת קצב: תוכל/י להתחיל שיחה חדשה בעוד ${canStart.waitMinutes} דקות.`
         );
         return;
       }
@@ -621,11 +621,11 @@ app.post('/webhook', async (req, res) => {
         const messageCount = isVoiceMessage ? 2 : 1;
         sessionManager.recordMessage(phone, messageCount);
         const remaining = canSend.messagesRemaining - messageCount;
-        const footer = `\n\n_[${remaining} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
+        const footer = `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`;
         // Use sendResponse which may send voice randomly (higher chance if replying to voice)
         await sendResponse(chatId, result.text + footer, isVoiceMessage);
       } else {
-        await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
+        await sendQuickMessage(chatId, `❌ מצטער, לא הצלחתי לעבד את זה. שגיאה: ${result.error}`);
       }
       return;
     }
@@ -641,11 +641,11 @@ app.post('/webhook', async (req, res) => {
 
       if (canSend.reason === 'max_messages' || canSend.messagesRemaining < messageCount) {
         await sendQuickMessage(chatId,
-          `📊 Session ended: Maximum ${MAX_MESSAGES_PER_SESSION} messages reached.\n\nYou can start a new session in 1 hour by sending "הבוט של אביץ"`
+          `📊 השיחה הסתיימה: הגעת למקסימום ${MAX_MESSAGES_PER_SESSION} הודעות.\n\nתוכל/י להתחיל שיחה חדשה בעוד שעה עם "הבוט של אביץ"`
         );
       } else if (canSend.reason === 'timeout') {
         await sendQuickMessage(chatId,
-          `⏰ Session ended: Timeout reached.\n\nYou can start a new session in 1 hour by sending "הבוט של אביץ"`
+          `⏰ השיחה הסתיימה: פג הזמן הקצוב.\n\nתוכל/י להתחיל שיחה חדשה בעוד שעה עם "הבוט של אביץ"`
         );
       }
       return;
@@ -657,11 +657,11 @@ app.post('/webhook', async (req, res) => {
     if (result.success) {
       sessionManager.recordMessage(phone, messageCount);
       const remaining = canSend.messagesRemaining - messageCount;
-      const footer = `\n\n_[${remaining} messages left | ${formatTimeRemaining(canSend.timeRemainingMs)} remaining]_`;
+      const footer = `\n\n_[נותרו ${remaining} הודעות | ${formatTimeRemaining(canSend.timeRemainingMs)} נותרו]_`;
       // Use sendResponse which may send voice randomly (higher chance if replying to voice)
       await sendResponse(chatId, result.text + footer, isVoiceMessage);
     } else {
-      await sendQuickMessage(chatId, `❌ Sorry, I couldn't process that. Error: ${result.error}`);
+      await sendQuickMessage(chatId, `❌ מצטער, לא הצלחתי לעבד את זה. שגיאה: ${result.error}`);
     }
 
   } catch (error) {
