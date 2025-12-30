@@ -8,12 +8,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (including dev for tests)
+RUN npm install
 
 # Copy source code
 COPY server.js ./
+COPY cli.js ./
 COPY src ./src
+COPY tests ./tests
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
@@ -21,5 +23,5 @@ RUN mkdir -p /app/data
 # Expose port
 EXPOSE 3003
 
-# Start the server
+# Default command - start the server
 CMD ["node", "server.js"]

@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js",
     "cli": "node cli.js",
     "get-prompt": "node cli.js get-prompt",
     "set-prompt": "node cli.js set-prompt",
