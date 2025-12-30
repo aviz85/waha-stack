@@ -11,8 +11,8 @@ services:
       - WHATSAPP_DEFAULT_ENGINE=NOWEB
       - WAHA_LOG_LEVEL=info
       - WAHA_PRINT_QR=True
-      # Webhooks to chatty backend and gemini bot
-      - WHATSAPP_HOOK_URL=http://chatty-backend:3002/api/webhook,http://gemini-bot:3003/webhook
+      # Webhook to gemini bot (primary handler)
+      - WHATSAPP_HOOK_URL=http://gemini-bot:3003/webhook
       - WHATSAPP_HOOK_EVENTS=message,message.any,session.status
     volumes:
       - waha_sessions:/app/.sessions
