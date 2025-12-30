@@ -11,8 +11,8 @@ services:
       - WHATSAPP_DEFAULT_ENGINE=NOWEB
       - WAHA_LOG_LEVEL=info
       - WAHA_PRINT_QR=True
-      # Webhook to chatty backend
-      - WHATSAPP_HOOK_URL=http://chatty-backend:3002/api/webhook
+      # Webhooks to chatty backend and gemini bot
+      - WHATSAPP_HOOK_URL=http://chatty-backend:3002/api/webhook,http://gemini-bot:3003/webhook
       - WHATSAPP_HOOK_EVENTS=message,message.any,session.status
     volumes:
       - waha_sessions:/app/.sessions
@@ -68,6 +68,43 @@ services:
       - chatty-backend
       - waha
 
+  # Gemini Bot - AI chatbot with session management
+  gemini-bot:
+    build:
+      context: ./gemini-bot
+      dockerfile: Dockerfile
+    container_name: gemini-bot
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - WAHA_URL=http://waha:3000
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      # Gemini AI
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+      - SYSTEM_PROMPT=${GEMINI_SYSTEM_PROMPT:-אתה עוזר AI ידידותי בשם הבוט של אביץ. ענה בעברית בצורה תמציתית וידידותית.}
+      # ElevenLabs Voice (optional)
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID:-EXAVITQu4vr4xnSDxMaL}
+      - ELEVENLABS_MODEL=${ELEVENLABS_MODEL:-eleven_multilingual_v2}
+      - ELEVENLABS_STT_MODEL=${ELEVENLABS_STT_MODEL:-scribe_v1}
+    volumes:
+      - gemini_data:/app/data
+    networks:
+      - waha-network
+    depends_on:
+      waha:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # WAHA Dashboard/Control Panel (static HTML served via nginx)
   waha-panel:
     image: nginx:alpine
@@ -89,6 +126,8 @@ volumes:
   waha_data:
     driver: local
   chatty_data:
+    driver: local
+  gemini_data:
     driver: local
 
 networks:
