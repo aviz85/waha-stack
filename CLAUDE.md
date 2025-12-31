@@ -284,7 +284,7 @@ NODE_ENV=production
 
 # Gemini Bot (required for AI chatbot)
 GEMINI_API_KEY=your_gemini_api_key  # Get from: https://aistudio.google.com/apikey
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-2.5-flash
 # Default language is Hebrew
 GEMINI_SYSTEM_PROMPT="אתה עוזר AI ידידותי בשם 'הבוט של אביץ'. ענה בעברית בצורה תמציתית וידידותית."
 
